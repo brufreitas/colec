@@ -9,6 +9,11 @@ $(document).ready(function() {
   $('#chatLog, input, button').hide();
 
   //The user has WebSockets
+  if (!("WebSocket" in window)) {
+    $('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');
+    return false;
+  }
+
   var socket;
   // var host = 'ws://linux03:12390';
   var host = 'wss://colec-brunofreitag.c9users.io:8081';
@@ -20,11 +25,6 @@ $(document).ready(function() {
   var pass = '';
 
   wsconnect();
-
-  if (!("WebSocket" in window)) {
-    $('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');
-    return false;
-  }
 
   function wsconnect() {
     try {
