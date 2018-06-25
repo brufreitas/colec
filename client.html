@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+
+  $('#chatLog, input, button').hide();
+
+  //The user has WebSockets
+  var socket;
+  // var host = 'ws://linux03:12390';
+  var host = 'wss://colec-brunofreitag.c9users.io:8081';
+  var reconnect = true;
+  var pingTime;
+  var pingInt;
+  var pingInterval = 5000;
+  var userLogin = '';
+  var pass = '';
+
+  wsconnect();
+
+  if (!("WebSocket" in window)) {
+    $('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');
+    return false;
+  }
+
+  function wsconnect() {
+    try {
+      status('Starting...', 'event');
+      socket = new WebSocket(host);
+
+      socket.onopen = function() {
+        status('Socket Status: ' + socket.readyState + ' (opened)', 'online');
+        pingInt = setInterval(localPing, pingInterval);
+      };
+
+      socket.onerror = function(error){
+        status('Socket Status: ' + socket.readyState + ' (' + error + ')', 'error');
+      };
+
+      //receive message
+      socket.onmessage = function(msg) {
+        var data = JSON.parse(msg.data);
+
+        console.log(data);
+
+        if (data.message != undefined) {
+          message(data.message, 'rcvd');
+        }
+
+        if (data.srvmsg != undefined) {
+          message(data.srvmsg, 'srvmsg');
+        }
+
+        if (data.ping != undefined) {
+          var time = new Date().getTime();
+          time = time - pingTime;
+          $('#ping').html('Ping: ' + time + 'ms');
+        }
+
+        if (data.sendUser != undefined) {
+          message('Received sendUser', '');
+
+          while (userLogin == '')
+            userLogin = prompt("Inform your user login: ");
+
+          socket.send('user ' + userLogin);
+        }
+
+        if (data.sendPass != undefined) {
+          message('Received sendPass', '');
+
+          while (pass == '')
+            pass = prompt("Inform your password: ");
+
+          socket.send('pass ' + pass);
+          pass = '';
+        }
+
+        if (data.logonOk != undefined) {
+          message('Received logonOk', '');
+          $('#chatLog, input, button').fadeIn("fast");
+        }
+
+        if (data.users != undefined) {
+          $('#users ul').html('');
+          $('#usrQtd').html('0');
+
+          var obj;
+          for (i in data.users) {
+            obj = $('<li>' + data.users[i] + '</li>');
+            if (data.users[i] == userLogin) {
+              obj.addClass('myself');
+            }
+            $('#users ul').append(obj);
+          }
+
+          $('#usrQtd').html($('#users ul li').length);
+
+          $('#users ul').html(
+            $('#users ul').children('li').sort(function (a, b) {
+              return $(a).text() > $(b).text()? 1 : -1;
+            })
+          );
+        }
+
+        if (data.offerAccepted != undefined) {
+          $('#inventory ul li#' + data.offerAccepted.thingUUID).remove();
+          $('#invQtd').html($('#inventory ul li').length);
+        }
+
+        if (data.refreshItens != undefined) {
+          $('#inventory ul').html('');
+          $('#invQtd').html('0');
+
+          for (i in data.refreshItens) {
+            $('#inventory ul').append('<li id="' + data.refreshItens[i].uuid + '">' + data.refreshItens[i].nm + '</li>');
+          }
+
+          $('#invQtd').html($('#inventory ul li').length);
+        }
+
+        if (data.newItem != undefined) {
+
+          for (i in data.newItem) {
+            if (!$('#inventory ul li#'+ data.newItem[i].uuid).length) {
+              message('newItem! ' + data.newItem[i].nm, 'newItem');
+              $('#inventory ul').append('<li id="' + data.newItem[i].uuid + '">' + data.newItem[i].nm + '</li>');
+            }
+          }
+
+          $('#inventory ul').html(
+            $('#inventory ul').children('li').sort(function (a, b) {
+              return $(a).text() > $(b).text()? 1 : -1;
+            })
+
+            // Ordena pela ordem numérica do value do li
+            // $('#inventory ul').children('li').sort(function (a, b) {
+            //   return $(a).val() - $(b).val();
+            // })
+          );
+
+          $('#invQtd').html($('#inventory ul li').length);
+
+        }
+
+        if (data.newOffer != undefined) {
+
+          for (i in data.newOffer) {
+            if (!$('#offers ul li#'+ data.newOffer[i]).length) {
+              message('newOffer! ' + data.newOffer[i], 'newOffer');
+              $('#offers ul').append('<li id="' + data.newOffer[i] + '">' + data.newOffer[i] + '</li>');
+            }
+          }
+
+          $('#ofrQtd').html($('#offers ul li').length);
+
+        }
+      }
+
+      socket.onclose = function(e){
+        clearInterval(pingInt);
+        if(reconnect){
+          wsconnect();
+        }
+        status('Socket Status: ' + socket.readyState + ' (closed)', 'offline');
+      };
+
+    } catch (exception) {
+      message(exception, 'error');
+    }
+  }
+
+  function localPing() {
+    if (reconnect) {
+      pingTime = new Date().getTime();
+      socket.send('ping');
+    }
+  }
+
+  function sendPacket(str) {
+    try {
+      socket.send(str);
+    } catch(exception) {
+      message('sendPacket error: ' + exception, 'error');
+    }
+  }
+
+  function send() {
+    var text = $('#text').val();
+    if (text == "") {
+      alert('Please enter a message');
+      return false;
+    }
+
+    message(userLogin + ': ' + text, 'sent');
+
+    sendPacket(text);
+
+    $('#text').val('');
+  }
+
+  function message(msg, type) {
+    $('#chatLog').append('<p class="' + type + '">' + msg + '</p>');
+    $('#chatLog').scrollTop($('#chatLog')[0].scrollHeight);
+  }
+
+  function status(msg, type) {
+    $('#status').html('<span class="' + type + '">' + msg + '</span>');
+  }
+
+  $('#text').keypress(function(event) {
+    if (event.keyCode == '13') {
+      send();
+    }
+  });
+
+  $('#disconnect').click(function() {
+    reconnect = false;
+    socket.close();
+  });
+
+  $("#inventory ul").on("click", "li", function() {
+    if (socket.readyState != 1 || $(this).hasClass('waiting')) {
+      return false;
+    }
+
+    alert($(this).html() + ' ' + $(this).attr('id'));
+    sendPacket('offer ' + $(this).attr('id'));
+    $(this).addClass('waiting');
+  });
+});
+</script>
+<style type="text/css">
+body{
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#container {
+  display: inline-block;
+  border: 5px solid grey;
+  width: 370px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+#users {
+  display: inline-block;
+  width: 220px;
+  border: 2px solid grey;
+  padding: 2px 0px 2px 4px;
+  vertical-align: top;
+}
+
+#inventory {
+  display: inline-block;
+  width: 400px;
+  border: 2px solid grey;
+  padding: 2px 0px 2px 4px;
+  vertical-align: top;
+}
+
+#offers {
+  display: inline-block;
+  width: 400px;
+  border: 2px solid grey;
+  padding: 2px 0px 2px 4px;
+  vertical-align: top;
+}
+
+#chatLog {
+  padding: 5px;
+  border: 1px solid black;
+  color: black;
+  height: 400px;
+  overflow: auto;
+  margin: 10px 0px;
+}
+
+#chatLog p {
+  margin: 0;
+}
+
+#chatLog .srvmsg {
+  color: rgb(255, 156, 62);
+}
+
+#chatLog .sent {
+  color: rgb(118, 178, 255);
+}
+
+#chatLog .rcvd {
+  color: rgb(83, 228, 95);
+}
+
+#chatLog .newItem  {
+  color: rgb(118, 178, 255);
+}
+
+#chatLog .newOffer  {
+  color: rgb(83, 228, 95);
+}
+
+#chatLog .error {
+  color: #FF3333;
+}
+
+#status {
+  color: rgb(255, 156, 62);
+}
+
+#status span {
+  font-size: 10pt;
+  padding: 2px;
+  margin: 0;
+}
+
+#status .event {
+  color:#999;
+}
+
+#status .error {
+  color: #FF3333;
+}
+
+#status .online {
+  color: rgb(0, 192, 0) !important;
+  font-weight: bold;
+}
+
+#status .offline {
+  color: #FF3333 !important;
+  font-weight: bold;
+}
+
+#text {
+  width: 90%;
+}
+
+.warning {
+  font-weight: bold;
+  color: rgb(255, 156, 62);
+}
+
+.myself {
+  color: rgb(83, 228, 95);
+  font-weight: bold;
+}
+
+.waiting {
+  color: #CCC;
+}
+</style>
+<title>Game Client</title>
+</head>
+<body>
+  <div id="wrapper">
+    <div id="container">
+      <h1>Client</h1>
+      <button id="disconnect">Disconnect</button>
+      <span id="status"></span>
+      <span id="ping"></span>
+      <div id="chatLog"></div>
+      <input id="text" type="text" placeholder="type in message"/>
+    </div>
+    <div id="users"><h2>Users <span id="usrQtd">0</span></h2><ul></ul></div>
+    <div id="inventory"><h2>Inventory <span id="invQtd">0</span></h2><ul></ul></div>
+    <div id="offers"><h2>Offerings <span id="ofrQtd">0</span></h2><ul></ul></div>
+  </div>
+</body>
+</html>
