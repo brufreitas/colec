@@ -80,8 +80,8 @@ class Conexao {
    */
   protected function _incConn() {
     if ($this->func["check_connect"]($this->socket) === true) {
-      $GLOBALS["_arr_bds"][intval($this->socket)]["inst"]++;
-      Conexao::$_arr_bds[intval($this->socket)]["inst"] = $GLOBALS["_arr_bds"][intval($this->socket)]["inst"];
+      // $GLOBALS["_arr_bds"][intval($this->socket)]["inst"]++;
+      // Conexao::$_arr_bds[intval($this->socket)]["inst"] = $GLOBALS["_arr_bds"][intval($this->socket)]["inst"];
     }
   }
   /**
@@ -162,20 +162,22 @@ class Conexao {
     }
 
     if (strtoupper($this->p_sgbd) == "MYSQL") {
-      if (function_exists("mysql_connect") === true) {
-        $this->func["connect"] = "mysql_connect";
-        $this->func["close"] = "mysql_close";
-        $this->func["select_db"] = "mysql_select_db";
-        $this->func["errno"] = "mysql_errno";
-        $this->func["error"] = "mysql_error";
-        $this->func["query"] = "mysql_query";
-        $this->func["fetch_assoc"] = "mysql_fetch_assoc";
-        $this->func["num_rows"] = "mysql_num_rows";
-        $this->func["affected_rows"] = "mysql_affected_rows";
-        $this->func["data_seek"] = "mysql_data_seek";
-        $this->func["insert_id"] = "mysql_insert_id";
+      if (function_exists("mysqli_connect") === true) {
+        $this->func["connect"] = "mysqli_connect";
+        $this->func["close"] = "mysqli_close";
+        $this->func["select_db"] = "mysqli_select_db";
+        $this->func["connect_errno"] = "mysqli_connect_errno";
+        $this->func["connect_error"] = "mysqli_connect_error";
+        $this->func["errno"] = "mysqli_errno";
+        $this->func["error"] = "mysqli_error";
+        $this->func["query"] = "mysqli_query";
+        $this->func["fetch_assoc"] = "mysqli_fetch_assoc";
+        $this->func["num_rows"] = "mysqli_num_rows";
+        $this->func["affected_rows"] = "mysqli_affected_rows";
+        $this->func["data_seek"] = "mysqli_data_seek";
+        $this->func["insert_id"] = "mysqli_insert_id";
 
-        $this->func["check_connect"] = "is_resource";
+        $this->func["check_connect"] = "is_mysqli";
       } else {
         $this->errcod = "NO|11|ERCBD";
         $this->status = false;
@@ -245,22 +247,22 @@ class Conexao {
   public function connect() {
     $this->_isEOF = true;
     try {
-      $this->socket = @$this->func["connect"]($this->host, $this->user, $this->pass);
+      $this->socket = @$this->func["connect"]($this->host, $this->user, $this->pass, $this->bd);
 
       if ($this->socket === false) {
-        if ($this->func["error"]() == "") {
+        if ($this->func["connect_error"]() == "") {
           throw new Exception("Não foi possível conectar com o BD porém ele não retornou a descrição do erro. Provavelmente o usuário/senha são inválidos.");
         } else {
-          throw new Exception($this->func["error"]());
+          throw new Exception($this->func["connect_error"]());
         }
       }
     } catch (Exception $e) {
-      if (strpos($e->getMessage(), "Lost connection to MySQL server at ") !== false) {
+      if ($this->func["connect_errno"]()) {
+        $this->errno = $this->func["connect_errno"]();
+      } elseif (strpos($e->getMessage(), "Lost connection to MySQL server at ") !== false) {
         $this->errno = 2055;
-      } else if (strpos($e->getMessage(), "Acesso negado para o usuário") !== false) {
-        $this->errno = 1045;
       } else {
-        $this->errno = 9999999999999999999999;
+        $this->errno = 99999;
       }
       $this->error = $e->getMessage();
 
@@ -269,20 +271,27 @@ class Conexao {
       return false;
     }
 
-    if ($this->func["check_connect"]($this->socket) === true) {
-      $sel_bd = @$this->func["select_db"]($this->bd, $this->socket);
+    var_dump($this->socket);
+
+    if ($this->func["check_connect"]($this->socket)) {
+     echo "sim\n";
+
+      // $sel_bd = @$this->func["select_db"]($this->bd, $this->socket);
+      $sel_bd = true;
+
 
       if ($sel_bd === true) {
-        if (is_array($GLOBALS["_arr_bds"][intval($this->socket)]) === false) {
-          $this->close_connect = true;
+        $this->close_connect = true;
+        // if (is_array($GLOBALS["_arr_bds"][intval($this->socket)]) === false) {
+        //   $this->close_connect = true;
 
-          $GLOBALS["_arr_bds"][intval($this->socket)] = array(
-            "server" => $this->sgbd,
-            "host" => $this->host,
-            "name" => $this->bd,
-            "user" => $this->user,
-          );
-        }
+        //   $GLOBALS["_arr_bds"][intval($this->socket)] = array(
+        //     "server" => $this->sgbd,
+        //     "host" => $this->host,
+        //     "name" => $this->bd,
+        //     "user" => $this->user,
+        //   );
+        // }
 
         $this->_incConn();
 
@@ -292,14 +301,18 @@ class Conexao {
         $this->status = true;
         return true;
       } else {
-        $this->errno = $this->func["errno"]($this->socket);
-        $this->error = $this->func["error"]($this->socket);
+        printf("Connect failed: %s\n", mysqli_connect_error());
+        echo "Não2....";
+
+        $this->errno = $this->func["connect_errno"]($this->socket);
+        $this->error = $this->func["connect_error"]($this->socket);
 
         $this->errcod = "NO|05|ERCBD";
         $this->status = false;
         return false;
       }
     } else {
+      echo "Não....";
       $this->errcod = "NO|04|ERCBD";
       $this->status = false;
       return false;
@@ -369,77 +382,78 @@ class Conexao {
       return false;
     }
 
-    //TRATAMENTO PARA DEBUG SQL
-    $arr_debug = debug_backtrace(FALSE);
+    // //TRATAMENTO PARA DEBUG SQL
+    // $arr_debug = debug_backtrace(FALSE);
+    // // var_dump($arr_debug);
 
-    //TRATAMENTO PARA MÉTODOS FACILITADORES DA EXECUÇÃO DO COMANDO SQL
-    $nivel = 1;
+    // //TRATAMENTO PARA MÉTODOS FACILITADORES DA EXECUÇÃO DO COMANDO SQL
+    // $nivel = 1;
 
-    if (is_array($arr_debug[$nivel]) === true) {
-      if (($arr_debug[$nivel]["class"] == __CLASS__) && ($arr_debug[$nivel]["type"] == "->") && (preg_match("/^(execInsert|execUpdate|execInsDupUp)$/", $arr_debug[$nivel]["function"]))) {
-        $nivel++;
-      }
-    }
+    // if (is_array($arr_debug[$nivel]) === true) {
+    //   if (($arr_debug[$nivel]["class"] == __CLASS__) && ($arr_debug[$nivel]["type"] == "->") && (preg_match("/^(execInsert|execUpdate|execInsDupUp)$/", $arr_debug[$nivel]["function"]))) {
+    //     $nivel++;
+    //   }
+    // }
 
-    //TRATAMENTO PARA USO DE FUNÇÕES
-    if (is_array($arr_debug[$nivel]) === true) {
-      if (empty($arr_debug[$nivel]["class"]) === false) {
-        $funcao = $arr_debug[$nivel]["class"].$arr_debug[$nivel]["type"].$arr_debug[$nivel]["function"];
-      } else {
-        $funcao = $arr_debug[$nivel]["function"];
-      }
-    }
-    if (preg_match("/^(require|include|require_once|include_once)$/", strtolower($funcao))) {
-      $funcao = "";
-    }
+    // //TRATAMENTO PARA USO DE FUNÇÕES
+    // if (is_array($arr_debug[$nivel]) === true) {
+    //   if (empty($arr_debug[$nivel]["class"]) === false) {
+    //     $funcao = $arr_debug[$nivel]["class"].$arr_debug[$nivel]["type"].$arr_debug[$nivel]["function"];
+    //   } else {
+    //     $funcao = $arr_debug[$nivel]["function"];
+    //   }
+    // }
+    // if (preg_match("/^(require|include|require_once|include_once)$/", strtolower($funcao))) {
+    //   $funcao = "";
+    // }
 
-    //PROGRAMA QUE EFETUOU A CHAMADA DO MÉTODO QUERY
-    $nivel--;
+    // //PROGRAMA QUE EFETUOU A CHAMADA DO MÉTODO QUERY
+    // $nivel--;
 
-    $include = str_replace($_SERVER['DOCUMENT_ROOT'], "", $arr_debug[$nivel]["file"]);
-    $linha_include = $arr_debug[$nivel]["line"];
+    // $include = str_replace($_SERVER['DOCUMENT_ROOT'], "", $arr_debug[$nivel]["file"]);
+    // $linha_include = $arr_debug[$nivel]["line"];
 
-    //PROGRAMA QUE EFETUOU A CHAMADA DA FUNÇÃO
-    $nivel = count($arr_debug) - 1;
-    while (is_array($arr_debug[$nivel]) === true) {
-      if (preg_match("/^(require|include|require_once|include_once)$/", strtolower($arr_debug[$nivel]["function"]))) {
-        $nivel--;
-      } else {
-        break;
-      }
-    }
+    // //PROGRAMA QUE EFETUOU A CHAMADA DA FUNÇÃO
+    // $nivel = count($arr_debug) - 1;
+    // while (is_array($arr_debug[$nivel]) === true) {
+    //   if (preg_match("/^(require|include|require_once|include_once)$/", strtolower($arr_debug[$nivel]["function"]))) {
+    //     $nivel--;
+    //   } else {
+    //     break;
+    //   }
+    // }
 
-    //PROGRAMA PRINCIPAL
-    $programa = str_replace($_SERVER['DOCUMENT_ROOT'], "", $arr_debug[$nivel]["file"]);
-    $linha = $arr_debug[$nivel]["line"];
+    // //PROGRAMA PRINCIPAL
+    // $programa = str_replace($_SERVER['DOCUMENT_ROOT'], "", $arr_debug[$nivel]["file"]);
+    // $linha = $arr_debug[$nivel]["line"];
 
-    unset($nivel);
-    unset($arr_debug);
+    // unset($nivel);
+    // unset($arr_debug);
 
-    if (($programa == $include) && ($linha == $linha_include)) {
-      $include = "";
-      $linha_include = 0;
-    }
+    // if (($programa == $include) && ($linha == $linha_include)) {
+    //   $include = "";
+    //   $linha_include = 0;
+    // }
 
-    //USUÁRIO
-    if (isset($_SESSION["session"]) === true) {
-      $usuario = $_SESSION["session"]["operador"];
-    } else {
-      $usuario = "NoSession(".$_SERVER['REMOTE_ADDR'].")";
-    }
+    // //USUÁRIO
+    // if (isset($_SESSION["session"])) {
+    //   $usuario = $_SESSION["session"]["operador"];
+    // } else {
+    //   $usuario = "NoSession(".$_SERVER['REMOTE_ADDR'].")";
+    // }
 
-    //TIPO DO COMANDO
-    $tipo_query = strtoupper(substr($q, 0, strpos($q, " ")));
+    // //TIPO DO COMANDO
+    // $tipo_query = strtoupper(substr($q, 0, strpos($q, " ")));
 
-    //IDENTIFICADOR
-    $q_desc = "/*".$tipo_query." Prg=".$programa.":".$linha." Login=".$usuario." BD=".$this->bd;
-    if (empty($funcao) === false) {
-      $q_desc .= " Funcao=".$funcao;
-    }
-    if (empty($include) === false) {
-      $q_desc .= " Inc=".$include.":".$linha_include;
-    }
-    $q_desc .= "*/";
+    // //IDENTIFICADOR
+    // $q_desc = "/*".$tipo_query." Prg=".$programa.":".$linha." Login=".$usuario." BD=".$this->bd;
+    // if (empty($funcao) === false) {
+    //   $q_desc .= " Funcao=".$funcao;
+    // }
+    // if (empty($include) === false) {
+    //   $q_desc .= " Inc=".$include.":".$linha_include;
+    // }
+    // $q_desc .= "*/";
 
     if ($this->is_connected === false) {
       $this->connect();
@@ -1150,5 +1164,9 @@ class Conexao {
 
     return $arr;
   }
+}
+
+function is_mysqli($link) {
+  return ($link instanceof mysqli);
 }
 ?>
