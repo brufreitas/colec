@@ -66,6 +66,7 @@ class Conexao {
 
   protected $query_desc;
   public $query_str;
+  public $query_tempo;
   protected $query_type;
 
   private $_isEOF = true;
@@ -79,10 +80,10 @@ class Conexao {
    * @version 27/06/2014 - Eduardo Pereira
    */
   protected function _incConn() {
-    if ($this->func["check_connect"]($this->socket) === true) {
-      // $GLOBALS["_arr_bds"][intval($this->socket)]["inst"]++;
-      // Conexao::$_arr_bds[intval($this->socket)]["inst"] = $GLOBALS["_arr_bds"][intval($this->socket)]["inst"];
-    }
+    // if ($this->func["check_connect"]($this->socket) === true) {
+    //   $GLOBALS["_arr_bds"][intval($this->socket)]["inst"]++;
+    //   Conexao::$_arr_bds[intval($this->socket)]["inst"] = $GLOBALS["_arr_bds"][intval($this->socket)]["inst"];
+    // }
   }
   /**
    * Decrementa o contador de conexões ativas
@@ -92,12 +93,12 @@ class Conexao {
    * @version 30/07/2014 - Eduardo Pereira
    */
   protected function _decConn() {
-    if ($this->func["check_connect"]($this->socket) === true) {
-      if ($GLOBALS["_arr_bds"][intval($this->socket)]["inst"] > 0) {
-        $GLOBALS["_arr_bds"][intval($this->socket)]["inst"]--;
-      }
-      Conexao::$_arr_bds[intval($this->socket)]["inst"] = $GLOBALS["_arr_bds"][intval($this->socket)]["inst"];
-    }
+    // if ($this->func["check_connect"]($this->socket) === true) {
+    //   if ($GLOBALS["_arr_bds"][intval($this->socket)]["inst"] > 0) {
+    //     $GLOBALS["_arr_bds"][intval($this->socket)]["inst"]--;
+    //   }
+    //   Conexao::$_arr_bds[intval($this->socket)]["inst"] = $GLOBALS["_arr_bds"][intval($this->socket)]["inst"];
+    // }
   }
   /**
    * @param mixed $host
@@ -271,10 +272,10 @@ class Conexao {
       return false;
     }
 
-    var_dump($this->socket);
+    // var_dump($this->socket);
 
     if ($this->func["check_connect"]($this->socket)) {
-     echo "sim\n";
+    //  echo "sim\n";
 
       // $sel_bd = @$this->func["select_db"]($this->bd, $this->socket);
       $sel_bd = true;
@@ -301,8 +302,8 @@ class Conexao {
         $this->status = true;
         return true;
       } else {
-        printf("Connect failed: %s\n", mysqli_connect_error());
-        echo "Não2....";
+        // printf("Connect failed: %s\n", mysqli_connect_error());
+        // echo "Não2....";
 
         $this->errno = $this->func["connect_errno"]($this->socket);
         $this->error = $this->func["connect_error"]($this->socket);
@@ -312,7 +313,7 @@ class Conexao {
         return false;
       }
     } else {
-      echo "Não....";
+      // echo "Não....";
       $this->errcod = "NO|04|ERCBD";
       $this->status = false;
       return false;
@@ -332,13 +333,13 @@ class Conexao {
 
       if ($this->close_connect === true) {//QG
         if ($this->func["check_connect"]($this->socket) === true) {
-          if (Conexao::$_arr_bds[intval($this->socket)]["inst"] == 0) {
+          // if (Conexao::$_arr_bds[intval($this->socket)]["inst"] == 0) {
             if ($this->func["close"]($this->socket)) {
               $this->is_connected = false;
 
-              unset($GLOBALS["_arr_bds"][intval($this->socket)]);
+              // unset($GLOBALS["_arr_bds"][intval($this->socket)]);
             }
-          }
+          // }
         }
       }
     }
@@ -370,6 +371,7 @@ class Conexao {
     $this->query_desc = null;
     $this->query_str = null;
     $this->query_type = null;
+    $this->query_tempo = null;
 
     $q = trim($q);
     if (substr($q, 0, 2) == "/*") {
@@ -469,87 +471,22 @@ class Conexao {
     }
 
     $this->query_str = $q;
-    $this->query_type = $tipo_query;
-    $this->query_desc = $q_desc;
+    // $this->query_type = $tipo_query;
+    // $this->query_desc = $q_desc;
 
     //DEBUG - Insira TEMPORARIAMENTE abaixo código específico para visualizar todos comandos SQL executados por uma programa
 
     //EXECUÇÃO DO COMANADO SQL
     $mt_ini = microtime(true);
-    $this->intquery = $this->func["query"]($this->query_desc." ".$this->query_str, $this->socket);
+    // $this->intquery = $this->func["query"]($this->query_desc." ".$this->query_str, $this->socket);
+    $this->intquery = $this->func["query"]($this->socket, $this->query_str);
     $mt_fim = microtime(true);
-    $tempo = ($mt_fim - $mt_ini) * 1000;
-
+    $this->query_tempo = ($mt_fim - $mt_ini) * 1000;
 
     $this->errno = $this->func["errno"]($this->socket);
     $this->error = $this->func["error"]($this->socket);
 
-    if ($this->intquery !== false) {
-      if (is_resource($this->intquery) === true) {
-        $this->count = $this->func["num_rows"]($this->intquery);
-        if ($this->count !== false) {
-          $this->result = $this->func["fetch_assoc"]($this->intquery);
-          $this->index = 0;
-
-          if ($this->count > 0) {
-            $this->_isEOF = false;
-          } else {
-            $this->_isEOF = true;
-          }
-        }
-
-        if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
-          $GLOBALS["_arr_querys"][] = array(
-            "conexao" => get_class($this),
-            "programa" => $programa,
-            "linha" => $linha,
-            "include" => $include,
-            "linha_include" => $linha_include,
-            "funcao" => $funcao,
-            "tipo" => $tipo_query,
-            "query" => $q,
-            "tempo" => $tempo,
-            "rows" => $this->count,
-            "errno" => $this->errno,
-            "error" => $this->error
-          );
-        }
-      } else {
-        $this->rowsAffected = $this->func["affected_rows"]($this->socket);
-
-        if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
-          $GLOBALS["_arr_querys"][] = array(
-            "conexao" => get_class($this),
-            "programa" => $programa,
-            "linha" => $linha,
-            "include" => $include,
-            "linha_include" => $linha_include,
-            "funcao" => $funcao,
-            "tipo" => $tipo_query,
-            "query" => $q,
-            "tempo" => $tempo,
-            "rows" => $this->rowsAffected,
-            "errno" => $this->errno,
-            "error" => $this->error
-          );
-        }
-      }
-
-      if (isset($GLOBALS["debug_is_included"]) === true) {
-        if ($GLOBALS["debug_is_included"] === true) {
-          $GLOBALS["debug_qtd_query"  ]++;
-          $GLOBALS["debug_tempo_query"] = $GLOBALS["debug_tempo_query"] + $tempo;
-          if ($tempo > $GLOBALS["debug_tempo_query_maior"]) {
-            $GLOBALS["debug_tempo_query_maior"] = $tempo;
-            $GLOBALS["debug_query_query_maior"] = $this->query_str;
-          }
-        }
-      }
-
-      $this->errcod = "OK|01|ERCBD";
-      $this->status = true;
-      return true;
-    } else {
+    if ($this->intquery === false) {
       if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
         $GLOBALS["_arr_querys"][] = array(
           "conexao" => get_class($this),
@@ -571,6 +508,68 @@ class Conexao {
       $this->status = false;
       return false;
     }
+
+    if ($this->intquery instanceof mysqli_result) {
+      $this->count = $this->intquery->num_rows;
+      if ($this->count > 0) {
+        $this->_isEOF = false;
+        $this->result = $this->func["fetch_assoc"]($this->intquery);
+        $this->index = 0;
+      } else {
+        $this->_isEOF = true;
+      }
+
+      if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
+        $GLOBALS["_arr_querys"][] = array(
+          "conexao" => get_class($this),
+          "programa" => $programa,
+          "linha" => $linha,
+          "include" => $include,
+          "linha_include" => $linha_include,
+          "funcao" => $funcao,
+          "tipo" => $tipo_query,
+          "query" => $q,
+          "tempo" => $this->tempo,
+          "rows" => $this->count,
+          "errno" => $this->errno,
+          "error" => $this->error
+        );
+      }
+    } else {
+      $this->rowsAffected = $this->func["affected_rows"]($this->socket);
+
+      if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
+        $GLOBALS["_arr_querys"][] = array(
+          "conexao" => get_class($this),
+          "programa" => $programa,
+          "linha" => $linha,
+          "include" => $include,
+          "linha_include" => $linha_include,
+          "funcao" => $funcao,
+          "tipo" => $tipo_query,
+          "query" => $q,
+          "tempo" => $tempo,
+          "rows" => $this->rowsAffected,
+          "errno" => $this->errno,
+          "error" => $this->error
+        );
+      }
+    }
+
+    if (isset($GLOBALS["debug_is_included"]) === true) {
+      if ($GLOBALS["debug_is_included"] === true) {
+        $GLOBALS["debug_qtd_query"  ]++;
+        $GLOBALS["debug_tempo_query"] = $GLOBALS["debug_tempo_query"] + $tempo;
+        if ($tempo > $GLOBALS["debug_tempo_query_maior"]) {
+          $GLOBALS["debug_tempo_query_maior"] = $tempo;
+          $GLOBALS["debug_query_query_maior"] = $this->query_str;
+        }
+      }
+    }
+
+    $this->errcod = "OK|01|ERCBD";
+    $this->status = true;
+    return true;
   }
   /**
    * GERA um comando INSERT no SGBD
@@ -871,19 +870,19 @@ class Conexao {
       return false;
     }
 
-    if ($this->func["check_connect"]($this->socket) === true) {
-      if (is_resource($this->intquery) === false) {
-        $this->errcod = "NO|07|ERCBD";
-        $this->status = false;
-        return false;
-      }
-    } else {
+    if (!$this->func["check_connect"]($this->socket)) {
       $this->errcod = "NO|08|ERCBD";
       $this->status = false;
       return false;
     }
 
-    if (is_numeric($id) === false) {
+    if (!($this->intquery instanceof mysqli_result)) {
+      $this->errcod = "NO|07|ERCBD";
+      $this->status = false;
+      return false;
+    }
+
+    if (!is_numeric($id)) {
       $id = 0;
     }
 
@@ -962,25 +961,26 @@ class Conexao {
       return false;
     }
 
-    if ($this->func["check_connect"]($this->socket) === true) {
-      if (is_resource($this->intquery) === true) {
-        if ($this->index < ($this->count - 1)) {
-          $this->next();
-          return $this->result;
-        } else {
-          $this->_isEOF = true;
-          return false;
-        }
-      } else {
-        $this->errcod = "NO|07|ERCBD";
-        $this->status = false;
-        return false;
-      }
-    } else {
+    if ($this->func["check_connect"]($this->socket) === false) {
       $this->errcod = "NO|08|ERCBD";
       $this->status = false;
       return false;
     }
+
+    if (!($this->intquery instanceof mysqli_result)) {
+      $this->errcod = "NO|07|ERCBD";
+      $this->status = false;
+      return false;
+    }
+
+    if ($this->index < ($this->count - 1)) {
+      $this->next();
+      return $this->result;
+    } else {
+      $this->_isEOF = true;
+      return false;
+    }
+
   }
   /**
    * Retorna true se o recordset acabou ou false caso ainda existam registros
