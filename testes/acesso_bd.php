@@ -3,7 +3,7 @@ require_once("func/ConexaoLocal.php");
 
 $con = new ConexaoLocal();
 
-$q = "SELECT * FROM tb_user";
+$q = "SELECT HEX(userUUID), login FROM tb_user";
 
 $con->query($q);
 if ($con->status === false) {
@@ -19,16 +19,10 @@ if ($con->status === false) {
 printf("Registros encontrados: [%d]\n", $con->count);
 printf("Tempo: [%f]\n", $con->query_tempo);
 
-// while (!$con->isEof()) {
-//   var_dump($con->result);
-//   $con->getFetchAssoc();
-// }
-
+while (!$con->isEof()) {
   var_dump($con->result);
   $con->getFetchAssoc();
-
-  var_dump($con->result);
-  $con->getFetchAssoc();
+}
 
 
 ?>
