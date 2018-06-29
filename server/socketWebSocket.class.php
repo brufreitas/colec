@@ -486,7 +486,7 @@ class socketWebSocket extends socket
   }
 
   protected function addUser($socket, $userName) {
-    $user = new user($userName, "a");
+    $user = new user($userName);
     if (!$user) {
       $this->console("User not recognized {$userName}", "white", "red");
       return false;
