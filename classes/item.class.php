@@ -7,7 +7,7 @@ class item
   public $name;
 
   public function __construct($uuid) {
-    echo $q = "SELECT itemName FROM tb_item WHERE itemUUID = 0x{$uuid}";
+    $q = "SELECT itemName FROM tb_item WHERE itemUUID = 0x{$uuid}";
     $con = new ConexaoLocal();
     $con->query($q);
 
