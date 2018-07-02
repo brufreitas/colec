@@ -12,6 +12,7 @@ require_once("func/uuid.php");
 require_once("func/ConexaoLocal.php");
 require_once("classes/user.class.php");
 require_once("classes/item.class.php");
+require_once("classes/thing.class.php");
 
 
 
@@ -107,7 +108,7 @@ class socketWebSocket extends socket
 
         // $this->console("Received: [{$bytes}] bytes from: [{$user->login}], socket: [{$socket}]");
 
-          //  the client status changed, but theres no data ---> disconnect
+        //  the client status changed, but theres no data ---> disconnect
         if ($bytes === 0) {
           $this->console("no data");
           $this->disconnected($socket);
@@ -167,7 +168,7 @@ class socketWebSocket extends socket
 
           $output = array("logonOk" => true);
 
-          $output["refreshItens"] = $this->getAllItensFrom($user);
+          $output["refreshInventory"] = $this->getAllThingsFrom($user);
 
           $this->send($socket, json_encode($output));
           // $this->addUser($socket_index, $name);
@@ -304,8 +305,8 @@ class socketWebSocket extends socket
     $arr = json_decode($str, true);
 
     $ret = $arr[mt_rand(0, count($arr) - 1)];
-    $ret["uuid"] = str_replace("-", "", uuidv4());
-    $ret["id"  ] = str_replace("-", "", $ret["id"]);
+    $ret["uuid"] = strtoupper(str_replace("-", "", uuidv4()));
+    $ret["id"  ] = strtoupper(str_replace("-", "", $ret["id"]));
 
     return $ret;
   }
@@ -507,8 +508,9 @@ class socketWebSocket extends socket
     $this->usersChanged = true;
   }
 
-  private function getAllItensFrom($user) {
-    $ret = array();
+  private function getAllThingsFrom($user) {
+    $ret["i"] = array();
+    $ret["t"] = array();
 
     $q = "SELECT HEX(a.thingUUID) AS uuid, HEX(a.itemUUID) AS id, b.itemName AS nm FROM tb_thing a LEFT JOIN tb_item b ON (a.itemUUID = b.itemUUID) WHERE a.ownerUUID = 0x{$user->uuid} ORDER BY nm";
     $this->con->query($q);
@@ -520,7 +522,7 @@ class socketWebSocket extends socket
     }
 
     while (!$this->con->isEof()) {
-      $ret[] = array(
+      $ret["t"][] = array(
         "uuid" => $this->con->result["uuid"],
         "id" => $this->con->result["id"],
         "nm" => utf8_encode($this->con->result["nm"]),

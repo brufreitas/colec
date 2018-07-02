@@ -112,24 +112,20 @@ $(document).ready(function() {
           $('#invQtd').html($('#inventory ul li').length);
         }
 
-        if (data.refreshItens != undefined) {
+        if (data.refreshInventory != undefined) {
           $('#inventory ul').html('');
           $('#invQtd').html('0');
 
-          for (i in data.refreshItens) {
-            $('#inventory ul').append('<li id="' + data.refreshItens[i].uuid + '">' + data.refreshItens[i].nm + '</li>');
+          for (i in data.refreshInventory.t) {
+            addToInventory(data.refreshInventory.t[i]);
           }
-
-          $('#invQtd').html($('#inventory ul li').length);
         }
 
         if (data.newItem != undefined) {
 
           for (i in data.newItem) {
-            if (!$('#inventory ul li#'+ data.newItem[i].uuid).length) {
-              message('newItem! ' + data.newItem[i].nm, 'newItem');
-              $('#inventory ul').append('<li id="' + data.newItem[i].uuid + '">' + data.newItem[i].nm + '</li>');
-            }
+            message('newItem! ' + data.newItem[i].nm, 'newItem');
+            addToInventory(data.newItem[i]);
           }
 
           $('#inventory ul').html(
@@ -142,9 +138,6 @@ $(document).ready(function() {
             //   return $(a).val() - $(b).val();
             // })
           );
-
-          $('#invQtd').html($('#inventory ul li').length);
-
         }
 
         if (data.newOffer != undefined) {
@@ -172,6 +165,18 @@ $(document).ready(function() {
     } catch (exception) {
       message(exception, 'error');
     }
+  }
+
+  function addToInventory(thing) {
+    var liSel = '#inventory ul li#' + thing.id;
+    if ($(liSel).length == 0) {
+      $('#inventory ul').append('<li id="' + thing.id + '">' + thing.nm + '<span class="qtd">0</span></li>');
+    }
+
+    $(liSel).append('<span id="' + thing.uuid + '" class="thing">' + thing.uuid + '</span></li>');
+    $(liSel + ' span.qtd').html('x' + $(liSel + ' span.thing').length);
+
+    $('#invQtd').html($('#inventory ul li').length + '/' + $('#inventory ul li span.thing').length);
   }
 
   function localPing() {
@@ -261,6 +266,14 @@ body{
   border: 2px solid grey;
   padding: 2px 0px 2px 4px;
   vertical-align: top;
+}
+
+#inventory .qtd {
+  border: 1px dashed palevioletred;
+}
+
+#inventory .thing {
+  display: none;
 }
 
 #offers {
