@@ -173,7 +173,7 @@ $(document).ready(function() {
       $('#inventory ul').append('<li id="' + thing.id + '">' + thing.nm + '<span class="qtd">0</span></li>');
     }
 
-    $(liSel).append('<span id="' + thing.uuid + '" class="thing">' + thing.uuid + '</span></li>');
+    $(liSel).append('<span id="' + thing.uuid + '" class="thing"></span></li>');
     $(liSel + ' span.qtd').html('x' + $(liSel + ' span.thing').length);
 
     $('#invQtd').html($('#inventory ul li').length + '/' + $('#inventory ul li span.thing').length);
@@ -233,8 +233,11 @@ $(document).ready(function() {
       return false;
     }
 
-    alert($(this).html() + ' ' + $(this).attr('id'));
-    sendPacket('offer ' + $(this).attr('id'));
+
+    // alert($(this).html());
+
+
+    sendPacket('offer ' + $(this).children('.thing').first().attr('id'));
     $(this).addClass('waiting');
   });
 });
