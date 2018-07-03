@@ -108,9 +108,9 @@ $(document).ready(function() {
         }
 
         if (data.offerAccepted != undefined) {
-          $('#inventory ul li#' + data.offerAccepted.thingUUID).remove();
-          removeFromInventory(thing);
-          $('#invQtd').html($('#inventory ul li').length);
+          removeFromInventory(data.offerAccepted);
+          // $('#inventory ul li#' + data.offerAccepted.thingUUID).remove();
+          // $('#invQtd').html($('#inventory ul li').length);
         }
 
         if (data.refreshInventory != undefined) {
@@ -144,9 +144,9 @@ $(document).ready(function() {
         if (data.newOffer != undefined) {
 
           for (i in data.newOffer) {
-            if (!$('#offers ul li#'+ data.newOffer[i]).length) {
-              message('newOffer! ' + data.newOffer[i], 'newOffer');
-              $('#offers ul').append('<li id="' + data.newOffer[i] + '">' + data.newOffer[i] + '</li>');
+            if (!$('#offers ul li#'+ data.newOffer[i].thingUUID).length) {
+              message('newOffer! ' + data.newOffer[i].itemName, 'newOffer');
+              $('#offers ul').append('<li id="' + data.newOffer[i].thingUUID + '">' + data.newOffer[i].itemName + '</li>');
             }
           }
 
@@ -181,20 +181,23 @@ $(document).ready(function() {
   }
 
   function removeFromInventory(thing) {
-    var liSel = '#inventory ul li#' + thing.id;
+    console.log(thing);
+    var liSel = '#inventory ul li#' + thing.itemUUID;
     if ($(liSel).length == 0) {
       return false;
     }
 
-    $(liSel + '#' + thing.uuid).remove();
+    $(liSel + ' #' + thing.thingUUID).remove();
 
     qtd = $(liSel + ' span.thing').length;
 
+    $(liSel + ' span.qtd').html('x' + qtd);
+
     if (qtd == 0) {
       $(liSel).remove();
+    } else {
+      $(liSel).removeClass('waiting');
     }
-
-    $(liSel + ' span.qtd').html('x' + qtd);
 
     $('#invQtd').html($('#inventory ul li').length + '/' + $('#inventory ul li span.thing').length);
   }

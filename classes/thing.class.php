@@ -21,7 +21,6 @@ class thing extends item
       return false;
     }
 
-
     parent::__construct($con->result["itemUUID"]);
     $this->owner = new user($con->result["ownerUUID"]);
 

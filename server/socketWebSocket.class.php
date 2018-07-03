@@ -13,6 +13,7 @@ require_once("func/ConexaoLocal.php");
 require_once("classes/user.class.php");
 require_once("classes/item.class.php");
 require_once("classes/thing.class.php");
+require_once("classes/offer.class.php");
 
 
 
@@ -180,15 +181,20 @@ class socketWebSocket extends socket
         if ((strpos($action, "offer ")) === 0) {
           $thingUUID = substr($action, 6);
 
-          $ok = $this->newOffer($user, $thingUUID);
+          $offer = offer::createNew($thingUUID);
 
-          $this->send($socket, json_encode($output));
-          if ($ok) {
+          // $this->send($socket, json_encode($output));
+          if ($offer instanceof offer) {
+            $this->console("newOffer >> `{$offer->itemName}` from `{$offer->owner->login}`", "cyan");
+            $this->offerToSend[] = $offer;
+
             $output = array();
-            $output["offerAccepted"]["thingUUID"] = $thingUUID;
+            $output["offerAccepted"] = $offer;
             $this->send($socket, json_encode($output));
             unset($output);
           }
+
+          unset($offer);
 
           continue;
         }
@@ -284,7 +290,17 @@ class socketWebSocket extends socket
   }
 
   private function pickItem() {
-    $chances = array(true, false, false, false, false, false, false, false, false, false, false); //9%
+    $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //4,7%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,0%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,2%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,5%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,8%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //6,2%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //6,6%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false); //7,1%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false); //7,6%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false); //8%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false); //9%
     // $chances = array(true, false, false, false, false, false, false, false, false, false); //10%
     // $chances = array(true, false, false, false, false, false, false, false, false); //11,1%
     // $chances = array(true, false, false, false, false, false, false, false); //12,5%
@@ -309,29 +325,6 @@ class socketWebSocket extends socket
     $ret["id"  ] = strtoupper(str_replace("-", "", $ret["id"]));
 
     return $ret;
-  }
-
-  private function newOffer($userFrom, $thingUUID) {
-    $this->console("newOffer >> {$thingUUID} from {$userFrom->login}", "cyan");
-
-    $a = array (
-      "offerUUID" => "(INT)0x".str_replace("-", "", uuidv4())."(INT)",
-      "thingUUID" => "(INT)0x".str_replace("-", "", $thingUUID)."(INT)",
-      "ownerUUID" => "(INT)0x".str_replace("-", "", $userFrom->uuid)."(INT)",
-      "offerstartDTHR" => "(INT)NOW()(INT)",
-    );
-
-    $this->con->execInsert($a, "tb_offer");
-    if ($this->con->status === false) {
-      echo "Pau\n";
-      echo $this->con->getDescRetorno()."\n";
-      echo $this->con->errno."-".$this->con->error."\n";
-      return false;
-    }
-
-    $this->offerToSend[] = $thingUUID.$userFrom->login;
-
-    return true;
   }
 
   /**

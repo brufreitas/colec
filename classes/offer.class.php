@@ -4,24 +4,44 @@ require_once("func/ConexaoLocal.php");
 
 class offer extends thing
 {
-  public $uuid;
-  public $name;
+  public $offerUUID;
 
   public function __construct($uuid) {
-    echo $q = "SELECT itemName FROM tb_item WHERE itemUUID = 0x{$uuid}";
+    $q = "SELECT HEX(thingUUID) AS thingUUID FROM tb_offer WHERE offerUUID = 0x{$uuid}";
+
     $con = new ConexaoLocal();
     $con->query($q);
 
     if ($con->count == 0) {
-      echo "Não reconheço {$uuid}\n";
+      echo "Não reconheço offer {$uuid}\n";
       unset($con);
       return false;
     }
 
-    $this->uuid = $uuid;
-    $this->name = $con->result["itemName"];
+    parent::__construct($con->result["thingUUID"]);
+
+    $this->offerUUID = $uuid;
     unset($con);
-    return true;
+  }
+
+  public static function createNew($thingUUID) {
+    $uuid = strtoupper(str_replace("-", "", uuidv4()));
+    $a = array (
+      "offerUUID" => "(INT)0x".$uuid."(INT)",
+      "thingUUID" => "(INT)0x".$thingUUID."(INT)",
+      "offerStartDTHR" => "(INT)NOW(6)(INT)",
+    );
+
+    $con = new ConexaoLocal();
+    $con->execInsert($a, "tb_offer");
+    if ($con->status === false) {
+      echo "Pau\n";
+      echo $con->getDescRetorno()."\n";
+      echo $con->errno."-".$con->error."\n";
+      return false;
+    }
+
+    return new offer($uuid);
   }
 }
 ?>
