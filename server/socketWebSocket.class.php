@@ -263,6 +263,7 @@ class socketWebSocket extends socket
 
           $uniqOutput = $output;
           if ($timeToPick && $item = $this->pickItem()) {
+            $uniqOutput["now"] = date("Y-m-d H:i:s");
             $uniqOutput["newItem"][] = $item;
             $this->console("newItem >> {$item["nm"]} to {$user->login}", "cyan");
             $a = array(
@@ -282,7 +283,6 @@ class socketWebSocket extends socket
           }
 
           $str = json_encode($uniqOutput);
-
           $this->send($sock, $str);
         }
       }

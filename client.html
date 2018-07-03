@@ -80,6 +80,10 @@ $(document).ready(function() {
           pass = '';
         }
 
+        if (data.now != undefined) {
+          message('Now: ' + data.now, '');
+        }
+
         if (data.logonOk != undefined) {
           message('Received logonOk', '');
           $('#chatLog, input, button').fadeIn("fast");
