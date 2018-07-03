@@ -109,6 +109,7 @@ $(document).ready(function() {
 
         if (data.offerAccepted != undefined) {
           $('#inventory ul li#' + data.offerAccepted.thingUUID).remove();
+          removeFromInventory(thing);
           $('#invQtd').html($('#inventory ul li').length);
         }
 
@@ -170,11 +171,30 @@ $(document).ready(function() {
   function addToInventory(thing) {
     var liSel = '#inventory ul li#' + thing.id;
     if ($(liSel).length == 0) {
-      $('#inventory ul').append('<li id="' + thing.id + '">' + thing.nm + '<span class="qtd">0</span></li>');
+      $('#inventory ul').append('<li id="' + thing.id + '">' + thing.nm + '<span class="qtd"></span></li>');
     }
 
-    $(liSel).append('<span id="' + thing.uuid + '" class="thing"></span></li>');
+    $(liSel).append('<span id="' + thing.uuid + '" class="thing"></span>');
     $(liSel + ' span.qtd').html('x' + $(liSel + ' span.thing').length);
+
+    $('#invQtd').html($('#inventory ul li').length + '/' + $('#inventory ul li span.thing').length);
+  }
+
+  function removeFromInventory(thing) {
+    var liSel = '#inventory ul li#' + thing.id;
+    if ($(liSel).length == 0) {
+      return false;
+    }
+
+    $(liSel + '#' + thing.uuid).remove();
+
+    qtd = $(liSel + ' span.thing').length;
+
+    if (qtd == 0) {
+      $(liSel).remove();
+    }
+
+    $(liSel + ' span.qtd').html('x' + qtd);
 
     $('#invQtd').html($('#inventory ul li').length + '/' + $('#inventory ul li span.thing').length);
   }
