@@ -518,7 +518,7 @@ class socketWebSocket extends socket
       $ret["t"][] = array(
         "uuid" => $this->con->result["uuid"],
         "id" => $this->con->result["id"],
-        "nm" => utf8_encode($this->con->result["nm"]),
+        "nm" => $this->con->result["nm"],
       );
       $this->con->result;
       $this->con->getFetchAssoc();
