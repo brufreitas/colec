@@ -175,7 +175,7 @@ $(document).ready(function() {
   function addToInventory(thing) {
     var liSel = '#inventory ul li#' + thing.id;
     if ($(liSel).length == 0) {
-      $('#inventory ul').append('<li id="' + thing.id + '">' + thing.nm + '<span class="qtd"></span></li>');
+      $('#inventory ul').append('<li id="' + thing.id + '"><span class="nm">' + thing.nm + '</span><span class="qtd"></span></li>');
     }
 
     $(liSel).append('<span id="' + thing.uuid + '" class="thing"></span>');
@@ -270,8 +270,16 @@ $(document).ready(function() {
 });
 </script>
 <style type="text/css">
-body{
-  font-family: Arial, Helvetica, sans-serif;
+body {
+  background-color: #1e1e1e;
+  color: #569cd6;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  line-height: 19px;
+}
+
+h1, h2 {
+  color: #d7ba7d;
 }
 
 #container {
@@ -298,8 +306,23 @@ body{
   vertical-align: top;
 }
 
+#inventory ul, #offers ul {
+  margin: 0px 10px;
+  list-style-type: none;
+  padding: 0px;
+}
+
+#inventory li, #offers li {
+  padding: 0px 5px;
+}
+
+#inventory li:hover, #offers li:hover {
+  background-color: #252525;
+}
+
 #inventory .qtd {
-  border: 1px dashed palevioletred;
+  color: palevioletred;
+  float: right;
 }
 
 #inventory .thing {
@@ -309,15 +332,14 @@ body{
 #offers {
   display: inline-block;
   width: 400px;
-  border: 2px solid grey;
+  border: 2px solid gray;
   padding: 2px 0px 2px 4px;
   vertical-align: top;
 }
 
 #chatLog {
   padding: 5px;
-  border: 1px solid black;
-  color: black;
+  border: 1px solid gray;
   height: 400px;
   overflow: auto;
   margin: 10px 0px;
@@ -332,19 +354,19 @@ body{
 }
 
 #chatLog .sent {
-  color: rgb(118, 178, 255);
+  color: #9cdcfe;
 }
 
 #chatLog .rcvd {
-  color: rgb(83, 228, 95);
+  color: #608b4e;
 }
 
 #chatLog .newItem  {
-  color: rgb(118, 178, 255);
+  color: #9cdcfe;
 }
 
 #chatLog .newOffer  {
-  color: rgb(83, 228, 95);
+  color: #608b4e;
 }
 
 #chatLog .error {
@@ -366,11 +388,11 @@ body{
 }
 
 #status .error {
-  color: #FF3333;
+  color: rgb(173, 76, 76);
 }
 
 #status .online {
-  color: rgb(0, 192, 0) !important;
+  color: #79bf5c !important;
   font-weight: bold;
 }
 
@@ -389,8 +411,7 @@ body{
 }
 
 .myself {
-  color: rgb(83, 228, 95);
-  font-weight: bold;
+  color: #79bf5c;
 }
 
 .waiting {
