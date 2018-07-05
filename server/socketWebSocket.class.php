@@ -269,9 +269,9 @@ class socketWebSocket extends socket
             $a = array(
               "thingUUID" => "(INT)0x".str_replace("-", "", $item["uuid"])."(INT)",
               "itemUUID" => "(INT)0x".str_replace("-", "", $item["id"])."(INT)",
-              "creationDTHR" => "(INT)NOW()(INT)",
+              "creationDTHR" => "(INT)NOW(6)(INT)",
               "ownerUUID" => "(INT)0x".str_replace("-", "", $user->uuid)."(INT)",
-              "ownerDTHR" => "(INT)NOW()(INT)",
+              "ownerDTHR" => "(INT)creationDTHR(INT)",
             );
             $this->con->execInsert($a, "tb_thing");
             if ($this->con->status === false) {
@@ -290,7 +290,7 @@ class socketWebSocket extends socket
   }
 
   private function pickItem() {
-    $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //4,7%
+    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //4,7%
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,0%
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,2%
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,5%
@@ -303,7 +303,7 @@ class socketWebSocket extends socket
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false); //9%
     // $chances = array(true, false, false, false, false, false, false, false, false, false); //10%
     // $chances = array(true, false, false, false, false, false, false, false, false); //11,1%
-    // $chances = array(true, false, false, false, false, false, false, false); //12,5%
+    $chances = array(true, false, false, false, false, false, false, false); //12,5%
     // $chances = array(true, false, false, false, false, false, false); //14,3%
     // $chances = array(true, false, false, false, false, false); //16,7%
     // $chances = array(true, false, false, false, false); //20%
