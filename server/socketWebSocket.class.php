@@ -465,7 +465,6 @@ class socketWebSocket extends socket
 		}
 	}
 
-
   /**
    * Extends the parent console method.
    * For now we just set another type.
@@ -500,10 +499,19 @@ class socketWebSocket extends socket
   }
 
   private function getAllThingsFrom($user) {
-    $ret["i"] = array();
     $ret["t"] = array();
 
-    $q = "SELECT HEX(a.thingUUID) AS uuid, HEX(a.itemUUID) AS id, b.itemName AS nm FROM tb_thing a LEFT JOIN tb_item b ON (a.itemUUID = b.itemUUID) WHERE a.ownerUUID = 0x{$user->uuid} ORDER BY nm";
+    $q = "SELECT ".
+           "HEX(t.thingUUID) AS uuid, ".
+           "HEX(t.itemUUID) AS id, ".
+           "i.itemName AS nm ".
+         "FROM tb_thing t ".
+         "LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID) ".
+         "LEFT JOIN tb_offer o ON (t.thingUUID = o.thingUUID) ".
+         "WHERE ".
+           "t.ownerUUID = 0x{$user->uuid} ".
+           "AND ISNULL(o.offerUUID) ".
+         "ORDER BY i.itemName";
     $this->con->query($q);
 
     if ($this->con->status === false) {
