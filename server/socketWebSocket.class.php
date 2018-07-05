@@ -121,7 +121,7 @@ class socketWebSocket extends socket
           $this->do_handshake($rawData, $socket, $socket_index);
 
           $output = array('sendUser' => true);
-          $this->send($socket, json_encode($output));
+          $this->send($socket, $output);
 
           continue;
         }
@@ -146,7 +146,7 @@ class socketWebSocket extends socket
         if ($action == "ping") {
           $output = array();
           $output['ping'] = true;
-          $this->send($socket, json_encode($output));
+          $this->send($socket, $output);
 
           // $this->console("Ping from: [{$user->login}]", "dark_gray");
 
@@ -157,7 +157,7 @@ class socketWebSocket extends socket
           $name = substr($action, $pos + 5);
 
           $output = array('sendPass' => true);
-          $this->send($socket, json_encode($output));
+          $this->send($socket, $output);
 
           $this->addUser($socket_index, $name);
 
@@ -171,7 +171,7 @@ class socketWebSocket extends socket
 
           $output["refreshInventory"] = $this->getAllThingsFrom($user);
 
-          $this->send($socket, json_encode($output));
+          $this->send($socket, $output);
           // $this->addUser($socket_index, $name);
           unset($output);
 
@@ -183,14 +183,13 @@ class socketWebSocket extends socket
 
           $offer = offer::createNew($thingUUID);
 
-          // $this->send($socket, json_encode($output));
           if ($offer instanceof offer) {
             $this->console("newOffer >> `{$offer->itemName}` from `{$offer->owner->login}`", "cyan");
             $this->offerToSend[] = $offer;
 
             $output = array();
             $output["offerAccepted"] = $offer;
-            $this->send($socket, json_encode($output));
+            $this->send($socket, $output);
             unset($output);
           }
 
@@ -207,7 +206,7 @@ class socketWebSocket extends socket
         $output = array();
         $output['message'] = $user->login.': '.$action;
         foreach ($them as $sock) {
-          $this->send($sock, json_encode($output));
+          $this->send($sock, $output);
         }
       } //foreach socket_select
 
@@ -282,8 +281,7 @@ class socketWebSocket extends socket
             unset($a);
           }
 
-          $str = json_encode($uniqOutput);
-          $this->send($sock, $str);
+          $this->send($sock, $uniqOutput);
         }
       }
     }
@@ -378,11 +376,11 @@ class socketWebSocket extends socket
   /**
    * Extends the socket class send method to send WebSocket messages
    *
-   * @param socket $client The socket to which we send data
+   * @param socket $client The socket to send the data
    * @param string $msg  The message we send
    */
-  protected function send($client, $msg) {
-    $msg = $this->encode2($msg);
+  protected function send($client, $arrSend) {
+    $msg = $this->encode2(json_encode($arrSend));
     parent::send($client, $msg);
   }
 
