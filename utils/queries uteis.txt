@@ -1,0 +1,51 @@
+SELECT
+  HEX(t.thingUUID) AS uuid,
+  HEX(t.itemUUID) AS id, 
+  i.itemName AS nm
+FROM tb_thing t
+  LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID)
+  LEFT JOIN tb_offer o ON (t.thingUUID = o.thingUUID)
+WHERE
+  t.ownerUUID = 0x6B003ED9B5D54C2D94AFD2A9924D4A95
+#  AND ISNULL(o.offerUUID)
+ORDER BY nm
+, t.thingUUID
+
+
+
+
+
+
+DELETE FROM  tb_thing WHERE thingUUID IN (
+SELECT
+  t.thingUUID, t.ownerUUID
+FROM tb_thing t 
+LEFT JOIN tb_user u ON (u.userUUID = t.ownerUUID)
+WHERE u.login = 'Chrome5'
+)
+
+
+SELECT
+  u.login, i.itemName, t.creationDTHR
+FROM tb_thing t 
+LEFT JOIN tb_user u ON (u.userUUID = t.ownerUUID)
+LEFT JOIN tb_item i ON (i.itemUUID = t.itemUUID)
+WHERE u.login = 'Chrome5'
+ORDER BY t.creationDTHR DESC
+
+
+
+select * from tb_item WHERE itemName LIKE '%bolanos%'
+
+
+
+
+
+SELECT
+  COUNT(*) AS qt,
+  i.itemName AS nm 
+FROM tb_offer o 
+LEFT JOIN tb_thing t ON (o.thingUUID = t.thingUUID) 
+LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID) 
+GROUP BY i.itemUUID
+ORDER BY i.itemName
