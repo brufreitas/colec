@@ -170,9 +170,10 @@ class socketWebSocket extends socket
           $output = array("logonOk" => true);
 
           $output["refreshInventory"] = $this->getAllThingsFrom($user);
+          $output["refreshOffers"] = $this->getAllOffers();
 
           $this->send($socket, $output);
-          // $this->addUser($socket_index, $name);
+
           unset($output);
 
           continue;
@@ -231,7 +232,14 @@ class socketWebSocket extends socket
       if (count($this->offerToSend) > 0) {
         $output["newOffer"] = array();
         foreach($this->offerToSend as $offer) {
-          $output["newOffer"][] = $offer;
+
+          $obj = (object) [
+            'iId' => $offer->itemUUID,
+            'nm' => $offer->itemName,
+            'qt' => 1,
+          ];
+
+          $output["newOffer"][] = $obj;
         }
         $this->offerToSend = array();
       }
@@ -262,7 +270,6 @@ class socketWebSocket extends socket
 
           $uniqOutput = $output;
           if ($timeToPick && $item = $this->pickItem()) {
-            $uniqOutput["now"] = date("Y-m-d H:i:s");
             $uniqOutput["newItem"][] = $item;
             $this->console("newItem >> {$item["nm"]} to {$user->login}", "cyan");
             $a = array(
@@ -281,14 +288,16 @@ class socketWebSocket extends socket
             unset($a);
           }
 
-          $this->send($sock, $uniqOutput);
+          if (count($uniqOutput) > 0) {
+            $this->send($sock, $uniqOutput);
+          }
         }
       }
     }
   }
 
   private function pickItem() {
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //4,7%
+    $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //4,7%
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,0%
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,2%
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,5%
@@ -301,7 +310,7 @@ class socketWebSocket extends socket
     // $chances = array(true, false, false, false, false, false, false, false, false, false, false); //9%
     // $chances = array(true, false, false, false, false, false, false, false, false, false); //10%
     // $chances = array(true, false, false, false, false, false, false, false, false); //11,1%
-    $chances = array(true, false, false, false, false, false, false, false); //12,5%
+    // $chances = array(true, false, false, false, false, false, false, false); //12,5%
     // $chances = array(true, false, false, false, false, false, false); //14,3%
     // $chances = array(true, false, false, false, false, false); //16,7%
     // $chances = array(true, false, false, false, false); //20%
@@ -380,7 +389,14 @@ class socketWebSocket extends socket
    * @param string $msg  The message we send
    */
   protected function send($client, $arrSend) {
-    $msg = $this->encode2(json_encode($arrSend));
+    $arrSend["now"] = date("Y-m-d H:i:s");
+    $msg = json_encode($arrSend);
+
+    if (json_last_error() != JSON_ERROR_NONE) {
+      $this->console("json_encode error >> ".json_last_error_msg(), "white", "red");
+    }
+
+    $msg = $this->encode2($msg);
     parent::send($client, $msg);
   }
 
@@ -526,7 +542,38 @@ class socketWebSocket extends socket
         "id" => $this->con->result["id"],
         "nm" => $this->con->result["nm"],
       );
-      $this->con->result;
+      $this->con->getFetchAssoc();
+    }
+
+    return $ret;
+  }
+
+  private function getAllOffers() {
+    $ret["o"] = array();
+
+    $q = "SELECT ".
+           "COUNT(*) AS qt, ".
+           "HEX(i.itemUUID) AS iId, ".
+           "i.itemName AS nm ".
+         "FROM tb_offer o ".
+         "LEFT JOIN tb_thing t ON (o.thingUUID = t.thingUUID) ".
+         "LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID) ".
+         "GROUP BY i.itemUUID ".
+         "ORDER BY i.itemName";
+    $this->con->query($q);
+
+    if ($this->con->status === false) {
+      $this->console($this->con->getDescRetorno(), "white", "red");
+      $this->console($this->con->errno."-".$this->con->error, "white", "red");
+      return false;
+    }
+
+    while (!$this->con->isEof()) {
+      $ret["o"][] = array(
+        "iId" => $this->con->result["iId"],
+        "nm" => $this->con->result["nm"],
+        "qt" => $this->con->result["qt"],
+      );
       $this->con->getFetchAssoc();
     }
 

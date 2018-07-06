@@ -43,6 +43,9 @@ $(document).ready(function() {
 
       //receive message
       socket.onmessage = function(msg) {
+
+        // console.log(msg);
+
         var data = JSON.parse(msg.data);
 
         console.log(data);
@@ -81,7 +84,7 @@ $(document).ready(function() {
         }
 
         if (data.now != undefined) {
-          message('Now: ' + data.now, '');
+          // message('Now: ' + data.now, '');
         }
 
         if (data.logonOk != undefined) {
@@ -113,8 +116,6 @@ $(document).ready(function() {
 
         if (data.offerAccepted != undefined) {
           removeFromInventory(data.offerAccepted);
-          // $('#inventory ul li#' + data.offerAccepted.thingUUID).remove();
-          // $('#invQtd').html($('#inventory ul li').length);
         }
 
         if (data.refreshInventory != undefined) {
@@ -127,35 +128,28 @@ $(document).ready(function() {
         }
 
         if (data.newItem != undefined) {
-
           for (i in data.newItem) {
             message('newItem! ' + data.newItem[i].nm, 'newItem');
             addToInventory(data.newItem[i]);
           }
+          sortli('#inventory ul');
+        }
 
-          $('#inventory ul').html(
-            $('#inventory ul').children('li').sort(function (a, b) {
-              return $(a).text() > $(b).text()? 1 : -1;
-            })
+        if (data.refreshOffers != undefined) {
+          $('#offers ul').html('');
+          $('#ofrQtd').html('0');
 
-            // Ordena pela ordem numérica do value do li
-            // $('#inventory ul').children('li').sort(function (a, b) {
-            //   return $(a).val() - $(b).val();
-            // })
-          );
+          for (i in data.refreshOffers.o) {
+            addToOffer(data.refreshOffers.o[i]);
+          }
         }
 
         if (data.newOffer != undefined) {
-
           for (i in data.newOffer) {
-            if (!$('#offers ul li#'+ data.newOffer[i].thingUUID).length) {
-              message('newOffer! ' + data.newOffer[i].itemName, 'newOffer');
-              $('#offers ul').append('<li id="' + data.newOffer[i].thingUUID + '">' + data.newOffer[i].itemName + '</li>');
-            }
+            message('newOffer! ' + data.newOffer[i].nm, 'newOffer');
+            addToOffer(data.newOffer[i]);
           }
-
-          $('#ofrQtd').html($('#offers ul li').length);
-
+          sortli('#offers ul');
         }
       }
 
@@ -172,6 +166,19 @@ $(document).ready(function() {
     }
   }
 
+  function sortli(selector) {
+    $(selector).html(
+      $(selector).children('li').sort(function (a, b) {
+        return $(a).text() > $(b).text()? 1 : -1;
+      })
+
+      // Ordena pela ordem numérica do value do li
+      // $('#inventory ul').children('li').sort(function (a, b) {
+      //   return $(a).val() - $(b).val();
+      // })
+    );
+  }
+
   function addToInventory(thing) {
     var liSel = '#inventory ul li#' + thing.id;
     if ($(liSel).length == 0) {
@@ -185,7 +192,7 @@ $(document).ready(function() {
   }
 
   function removeFromInventory(thing) {
-    console.log(thing);
+    // console.log(thing);
     var liSel = '#inventory ul li#' + thing.itemUUID;
     if ($(liSel).length == 0) {
       return false;
@@ -204,6 +211,29 @@ $(document).ready(function() {
     }
 
     $('#invQtd').html($('#inventory ul li').length + '/' + $('#inventory ul li span.thing').length);
+  }
+
+  function addToOffer(offer) {
+    console.log(offer);
+    if (isNaN(offer.qt)) {
+      offer.qt = 1;
+    } else {
+      offer.qt = new Number(offer.qt);
+    }
+
+    var liSel = $('#offers ul li#' + offer.iId);
+    if (liSel.length == 0) {
+      $('#offers ul').append('<li id="' + offer.iId + '"><span class="nm">' + offer.nm + '</span><span class="qtd">' + offer.qt + '</span></li>');
+    } else {
+      var spQtd = liSel.children('.qtd');
+      var qtd = new Number(spQtd.html());
+      if (isNaN(qtd)) {
+        qtd = offer.qt;
+      } else {
+        qtd += offer.qt;
+      }
+      spQtd.html(qtd);
+    }
   }
 
   function localPing() {
@@ -320,7 +350,7 @@ h1, h2 {
   background-color: #252525;
 }
 
-#inventory .qtd {
+#inventory .qtd, #offers .qtd {
   color: palevioletred;
   float: right;
 }
