@@ -16,17 +16,25 @@ class socket
    *
    * @master socket Holds the master socket
    */
-  protected $master;
+  private $master;
   /**
    *
    * @allsockets array Holds all connected sockets
    */
   protected $allsockets = array();
-  protected $consoleType = "bash";
+  private $consoleType = "bash";
 
-  public function __construct($host, $port) {
-    $this->createSocket($host, $port);
-  }
+  // Events
+  private $on_clientConnect = array();                   // $socket_index
+  private $on_clientDisconnect = array();                // $socket_index
+  private $on_messageReceived = array();                 // $socket_index, rawData
+  private $on_tick = array();
+
+  // public function __construct($host, $port) {
+  //   $this->createSocket($host, $port);
+
+  //   $this->run();
+  // }
 
   /**
    * Create a socket on given host/port
@@ -58,12 +66,147 @@ class socket
     $this->allsockets[] = $this->master;
   }
 
+  public function on($event, $function) {
+    $this->console(__FUNCTION__."/Binding event: " . $event, "green");
+    if (strtoupper($event) == "CLIENTCONNECT") {
+      $this->on_clientConnect[] = $function;
+    } elseif (strtoupper($event) == "CLIENTDISCONNECT") {
+      $this->on_clientDisconnect[] = $function;
+    } elseif (strtoupper($event) == "MESSAGERECEIVED") {
+      $this->on_messageReceived[] = $function;
+    } elseif (strtoupper($event) == "TICK") {
+      $this->on_tick[] = $function;
+    } else {
+      $this->console("socket->on(): Unknown event: `{$event}`", "white", "red");
+    }
+  }
+
+  public function listen($host, $port) {
+    $this->createSocket($host, $port);
+    $this->run();
+  }
+
+  private function run() {
+
+    while (true) {
+
+      // var_dump($this->allsockets);
+      // sleep(1);
+
+      $changed_sockets = $this->allsockets;
+      $write  = array();
+      $except = array();
+      //blocks execution until data is received from any socket
+      //OR will wait 1ms(1000us) - should theoretically put less pressure on the cpu
+      $num_sockets = socket_select($changed_sockets, $write, $except, 0, 1000);
+
+      foreach ($changed_sockets as $socket) {
+        // master socket changed means there is a new socket request
+        if ($socket == $this->master) {
+
+          // echo "New socket accepted / antes\n===================\n";
+          // var_dump($this->allsockets);
+          // echo "===================\nfim New socket accepted / antes\n===================\n";
+          // sleep(2);
+
+          // if accepting new socket fails
+          if (($client = socket_accept($this->master)) < 0) {
+            $this->console("socket_accept() failed: reason: " . socket_strerror(socket_last_error($client)), "white", "red");
+            continue;
+          }
+
+          // if it is successful push the client to the allsockets array
+          $this->allsockets[] = $client;
+          end($this->allsockets);
+          $new_socket_index = key($this->allsockets);
+
+          // // using array key from allsockets array, is that ok?
+          // // I want to avoid the often array_search calls
+          // $socket_index = array_search($client, $this->allsockets);
+          // $this->clients[$socket_index] = new stdClass;
+          // $this->clients[$socket_index]->socket_id = $client;
+
+
+          $this->console("Socket++ [{$new_socket_index}]", "light_green");
+
+          // echo "New socket accepted / depois\n===================\n";
+          // var_dump($this->allsockets);
+          // echo "===================\nfim New socket accepted / depois\n===================\n";
+          // sleep(1);
+
+          foreach($this->on_clientConnect as $func) {
+            call_user_func($func, $new_socket_index);
+          }
+
+          continue;
+        }
+
+
+        $rawData = "";
+        while ($bytes = @socket_recv($socket, $buffer, 2048, MSG_DONTWAIT)) {
+          $rawData .= $buffer;
+          if ($bytes < 2048) break;
+
+          $this->console("Reading...");
+          usleep(1000);
+        }
+
+        if ($bytes === false) {
+          $this->console("socket_recv() failed, reason: [".socket_strerror(socket_last_error($socket))."]", "white", "red");
+          continue;
+        }
+
+        $socket_index = array_search($socket, $this->allsockets);
+
+        $this->console("Received: [{$bytes}] bytes from socket_index: [{$socket_index}]");
+
+        //  the client socket changed and there is no data --> disconnect
+        if ($bytes === 0) {
+          $this->console("no data");
+
+          $this->disconnect($socket);
+
+          foreach($this->on_clientDisconnect as $func) {
+            call_user_func($func, $new_socket_index);
+          }
+
+          continue;
+        }
+
+        $this->console(">Socket< MessageReceived", "yellow");
+
+        foreach($this->on_messageReceived as $func) {
+          // $this->console(">Socket< Executando evento on_messageReceived");
+          call_user_func($func, $socket_index, $rawData);
+        }
+      }  //foreach socket_changed
+
+      foreach($this->on_tick as $func) {
+        call_user_func($func);
+      }
+
+    } //while true
+  }
+
+
+  protected function disconnect ($socket) {
+    $this->console("Entering socket->disconnect [{$socket}]", "yellow");
+    $socket_index = array_search($socket, $this->allsockets);
+
+    if ($socket_index >= 0) {
+      unset($this->allsockets[$socket_index]);
+    }
+
+    socket_close($socket);
+    $this->console("Socket-- [{$socket_index}]", "light_red");
+  }
+
   /**
    * Log a message
    * @param string $msg The message
    * @param string $type The type of the message
    */
-  protected function console($msg, $type = 'System', $fg = null, $bg = null) {
+  protected function console($msg, $fg = null, $bg = null) {
     if ($consoleType = "bash") {
 
       $fgCode = bash_fgColorCode($fg);
@@ -75,21 +218,63 @@ class socket
         $msg.
         "\033[0m";
     }
-    print date("Y-m-d H:i:s") . " {$type}: {$msg}\n";
+    print date("Y-m-d H:i:s").": {$msg}\n";
     // $msg = explode("\n", $msg);
     // foreach( $msg as $line ) {
     // print date('Y-m-d H:i:s') . " {$type}: {$msg}\n";
     // }
   }
 
-	/**
-	 * Sends a message over the socket
-	 * @param socket $client The destination socket
-	 * @param string $msg The message
-	 */
-  protected function send($client, $msg) {
-    socket_write($client, $msg, strlen($msg));
+  /**
+   * Send a message over the socket
+   * @param socket $client The destination socket
+   * @param string $msg The message
+   */
+  private function send($client_socket, $msg) {
+    socket_write($client_socket, $msg, strlen($msg));
   }
+
+    /**
+   * Send a message thru the socket (using the control index of the socket)
+   * @param int $client_index The index destination socket
+   * @param string $msg The message
+   */
+  protected function sendByIndex($client_index, $msg) {
+    if (!isset($this->allsockets[$client_index])) {
+      $this->console("sendByIndex Impossible Situation: Index `{$client_index}` unrecognized", "white", "red");
+    }
+
+    $client_socket = $this->allsockets[$client_index];
+
+    socket_write($client_socket, $msg, strlen($msg));
+  }
+
+  /**
+   * Send a message thru the socket to all the other client sockets but $socket_index_me
+   * @param int $socket_index_me The index destination socket
+   * @param string $msg The message that will be send
+   */
+  protected function sendToOthers($socket_index_me, $msg) {
+    $skipSockets = array($this->master, $this->allsockets[$socket_index_me]);
+    $them = array_diff($this->allsockets, $skipSockets);
+    $len = strlen($msg);
+    foreach ($them as $sock) {
+      socket_write($sock, $msg, $len);
+    }
+  }
+
+  /**
+   * Send a message thru the socket to all client sockets (broadcast)
+   * @param string $msg The message that will be send
+   */
+  protected function sendToAll($msg) {
+    $clients = array_diff($this->allsockets, array($this->master));
+    $len = strlen($msg);
+    foreach ($clients as $sock) {
+      socket_write($sock, $msg, $len);
+    }
+  }
+
 }
 
 function bash_fgColorCode($colorName) {
