@@ -260,7 +260,7 @@ $(document).ready(function() {
 
     message(userLogin + ': ' + text, 'sent');
 
-    sendPacket(text);
+    sendPacket('chat ' + text);
 
     $('#text').val('');
   }
