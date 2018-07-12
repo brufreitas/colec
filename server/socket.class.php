@@ -21,20 +21,15 @@ class socket
    *
    * @allsockets array Holds all connected sockets
    */
-  protected $allsockets = array();
+  private $allsockets = array();
   private $consoleType = "bash";
+  private $loopId = 0;
 
   // Events
   private $on_clientConnect = array();                   // $socket_index
   private $on_clientDisconnect = array();                // $socket_index
   private $on_messageReceived = array();                 // $socket_index, rawData
-  private $on_tick = array();
-
-  // public function __construct($host, $port) {
-  //   $this->createSocket($host, $port);
-
-  //   $this->run();
-  // }
+  private $on_tick = array();                            // $loopId
 
   /**
    * Create a socket on given host/port
@@ -89,6 +84,7 @@ class socket
   private function run() {
 
     while (true) {
+      $this->loopId++;
 
       // var_dump($this->allsockets);
       // sleep(1);
@@ -104,11 +100,6 @@ class socket
         // master socket changed means there is a new socket request
         if ($socket == $this->master) {
 
-          // echo "New socket accepted / antes\n===================\n";
-          // var_dump($this->allsockets);
-          // echo "===================\nfim New socket accepted / antes\n===================\n";
-          // sleep(2);
-
           // if accepting new socket fails
           if (($client = socket_accept($this->master)) < 0) {
             $this->console("socket_accept() failed: reason: " . socket_strerror(socket_last_error($client)), "white", "red");
@@ -120,19 +111,7 @@ class socket
           end($this->allsockets);
           $new_socket_index = key($this->allsockets);
 
-          // // using array key from allsockets array, is that ok?
-          // // I want to avoid the often array_search calls
-          // $socket_index = array_search($client, $this->allsockets);
-          // $this->clients[$socket_index] = new stdClass;
-          // $this->clients[$socket_index]->socket_id = $client;
-
-
           $this->console("Socket++ [{$new_socket_index}]", "light_green");
-
-          // echo "New socket accepted / depois\n===================\n";
-          // var_dump($this->allsockets);
-          // echo "===================\nfim New socket accepted / depois\n===================\n";
-          // sleep(1);
 
           foreach($this->on_clientConnect as $func) {
             call_user_func($func, $new_socket_index);
@@ -141,13 +120,12 @@ class socket
           continue;
         }
 
-
         $rawData = "";
         while ($bytes = @socket_recv($socket, $buffer, 2048, MSG_DONTWAIT)) {
           $rawData .= $buffer;
           if ($bytes < 2048) break;
 
-          $this->console("Reading...");
+          // $this->console("Reading...");
           usleep(1000);
         }
 
@@ -158,7 +136,7 @@ class socket
 
         $socket_index = array_search($socket, $this->allsockets);
 
-        $this->console("Received: [{$bytes}] bytes from socket_index: [{$socket_index}]");
+        // $this->console("Received: [{$bytes}] bytes from socket_index: [{$socket_index}]");
 
         //  the client socket changed and there is no data --> disconnect
         if ($bytes === 0) {
@@ -173,7 +151,7 @@ class socket
           continue;
         }
 
-        $this->console(">Socket< MessageReceived", "yellow");
+        // $this->console(">Socket< MessageReceived", "yellow");
 
         foreach($this->on_messageReceived as $func) {
           // $this->console(">Socket< Executando evento on_messageReceived");
@@ -182,7 +160,7 @@ class socket
       }  //foreach socket_changed
 
       foreach($this->on_tick as $func) {
-        call_user_func($func);
+        call_user_func($func, $this->loopId);
       }
 
     } //while true
@@ -190,7 +168,7 @@ class socket
 
 
   protected function disconnect ($socket) {
-    $this->console("Entering socket->disconnect [{$socket}]", "yellow");
+    // $this->console("Entering socket->disconnect [{$socket}]", "yellow");
     $socket_index = array_search($socket, $this->allsockets);
 
     if ($socket_index >= 0) {

@@ -10,27 +10,22 @@ require_once("classes/offer.class.php");
 
 
 
-
 class main extends socketWebSocket
 {
-  // private $clients = array();
   private $users = array();
   private $offerToSend = array();
+  private $usersChanged = false;
 
-  //variables added by me
   private $lastTime = 0;
 
   private $con;
 
-  private $usersChanged = false;
-
-
   public function __construct($host, $port) {
     parent::__construct();
     $this->on("webSocketConnect", array($this, "webSocketConnection"));
-    // $this->on("tick", array($this, "gameLoop"));
-    // $this->on("clientDisconnect", array($this, "webSocketConnection"));
+    $this->on("clientDisconnect", array($this, "webSocketDisconnection"));
     $this->on("messageReceived", array($this, "readMessageReceived"));
+    $this->on("tick", array($this, "gameLoop"));
 
     $this->con = new ConexaoLocal();
 
@@ -39,7 +34,7 @@ class main extends socketWebSocket
 
   protected function readMessageReceived ($socket_index, $message_string) {
     $user = $this->users[$socket_index];
-    $this->console(__CLASS__."->".__FUNCTION__." socket: `{$socket_index}`, user: `{$user->login}`, `{$message_string}`", "light_purple");
+    // $this->console(__CLASS__."->".__FUNCTION__." socket: `{$socket_index}`, user: `{$user->login}`, `{$message_string}`", "light_purple");
 
     if ($message_string == "ping") {
       $this->sendByIndex($socket_index, array("ping" => true));
@@ -94,12 +89,12 @@ class main extends socketWebSocket
       return true;
     }
 
-    $this->console("Invalid command {$message_string}", "white", "red");
+    $this->console("Invalid command `{$message_string}` from `{$user->login}`", "white", "red");
     return false;
   }
 
   protected function webSocketConnection ($socket_index) {
-    $this->console(__CLASS__."->".__FUNCTION__."------- {$socket_index}", "light_purple");
+    // $this->console(__CLASS__."->".__FUNCTION__."------- {$socket_index}", "light_purple");
 
     $user = new stdclass();
     $user->login = "notLoggedYet";
@@ -108,6 +103,24 @@ class main extends socketWebSocket
 
     $this->sendByIndex($socket_index, array("sendUser" => true));
     return true;
+  }
+
+  protected function webSocketDisconnection ($socket_index) {
+    // $this->console(__CLASS__."->".__FUNCTION__."------- {$socket_index}", "light_purple");
+
+    $this->removeUser($socket_index);
+  }
+
+  private function prepareArrayToSend($arrSend) {
+    $arrSend["now"] = date("Y-m-d H:i:s");
+    $msg = json_encode($arrSend);
+
+    if (json_last_error() != JSON_ERROR_NONE) {
+      $this->console("json_encode error >> ".json_last_error_msg(), "white", "red");
+      return false;
+    }
+
+    return $msg;
   }
 
   /**
@@ -128,7 +141,6 @@ class main extends socketWebSocket
    */
    protected function sendToOthers($socket_index_me, $arrSend) {
     // @todo: send only to logged people
-
     parent::sendToOthers($socket_index_me, $this->prepareArraytoSend($arrSend));
   }
 
@@ -139,301 +151,86 @@ class main extends socketWebSocket
    */
   protected function sendToAll($arrSend) {
     // @todo: send only to logged people
-    parent::sendToAll($socket_index_me, $this->prepareArraytoSend($arrSend));
+    parent::sendToAll($this->prepareArraytoSend($arrSend));
   }
 
-  private function prepareArraytoSend($arrSend) {
-    $arrSend["now"] = date("Y-m-d H:i:s");
-    $msg = json_encode($arrSend);
+  protected function gameLoop($loopId) {
+    $output = array();
 
-    if (json_last_error() != JSON_ERROR_NONE) {
-      $this->console("json_encode error >> ".json_last_error_msg(), "white", "red");
-      return false;
+    if ($this->usersChanged) {
+
+      $output["users"] = array();
+      foreach($this->users as $user) {
+        if ($user->login == "notLoggedYet") {
+          continue;
+        }
+        $output["users"][] = $user->login;
+      }
+
+      $this->console(__CLASS__."->".__FUNCTION__." Sending users [".count($output["users"])."]", "brown");
+
+      $this->usersChanged = false;
     }
 
-    return $msg;
-  }
+    if (count($this->offerToSend) > 0) {
+      $output["newOffer"] = array();
+      foreach($this->offerToSend as $offer) {
 
+        $obj = (object) [
+          'iId' => $offer->itemUUID,
+          'nm' => $offer->itemName,
+          'qt' => 1,
+        ];
 
-  /**
-   * Runs the while loop, wait for connections and handle them
-   */
-  private function run() {
-
-    while (true) {
-      $this->counter++;
-      // because socket_select gets the sockets it should watch from $changed_sockets
-      // and writes the changed sockets to that array we have to copy the allsocket array
-      // to keep our connected sockets list
-      $changed_sockets = $this->allsockets;
-
-      var_dump($this->allsockets);
-      sleep(3);
-
-      $write  = array();
-      $except = array();
-      //blocks execution until data is received from any socket
-      //OR will wait 10ms(10000us) - should theoretically put less pressure on the cpu
-      $num_sockets = socket_select($changed_sockets, $write, $except, 0, 10000);
-
-      foreach ($changed_sockets as $socket) {
-        // master socket changed means there is a new socket request
-        if ($socket == $this->master) {
-
-          // if accepting new socket fails
-          if (($client = socket_accept($this->master)) < 0) {
-            $this->console("socket_accept() failed: reason: " . socket_strerror(socket_last_error($client)), "white", "red");
-            continue;
-          }
-
-          // if it is successful push the client to the allsockets array
-          // $this->allsockets[] = $client;
-
-          // using array key from allsockets array, is that ok?
-          // I want to avoid the often array_search calls
-          $socket_index = array_search($client, $this->allsockets);
-          $this->clients[$socket_index] = new stdClass;
-          $this->clients[$socket_index]->socket_id = $client;
-
-
-          $this->console("Socket++ [{$client}]", "light_green");
-
-          // var_dump($this->clients);
-          // sleep(3);
-
-          continue;
-        }
-
-        // client socket has sent data
-        // $socket_index = array_search($socket, $this->allsockets);
-        // $user = $this->users[$socket_index];
-
-        $user = $this->getUserBySocket($socket);
-
-        if(!$user) {
-          $user = new stdclass();
-          $user->login = "unknow";
-        }
-
-        // $bytes = @socket_recv($socket, $buffer, 2048, MSG_DONTWAIT);
-
-        $rawData = "";
-        while ($bytes = @socket_recv($socket, $buffer, 2048, MSG_DONTWAIT)) {
-          $rawData .= $buffer;
-          if ($bytes < 2048) break;
-
-          $this->console("Reading...");
-          usleep(1000);
-        }
-
-        if ($bytes === false) {
-          $this->console("socket_recv() failed, reason: [".socket_strerror(socket_last_error($socket))."]", "white", "red");
-          continue;
-        }
-
-        $this->console("Received: [{$bytes}] bytes from: [{$user->login}], socket: [{$socket}]");
-
-        //  the client status changed, but theres no data ---> disconnect
-        if ($bytes === 0) {
-          $this->console("no data");
-          $this->disconnected($socket);
-          continue;
-        }
-
-        // echo "Handshakes / antes\n===================\n";
-        // var_dump($this->handshakes);
-        // echo "===================\nfim Handshakes / antes\n===================\n";
-
-        // this is a new connection, no handshake yet
-        if (!isset($this->handshakes[$socket_index])) {
-          $this->do_handshake($rawData, $socket, $socket_index);
-
-          // echo "Handshakes / depois\n===================\n";
-          // var_dump($this->handshakes);
-          // echo "===================\nfim Handshakes / depois\n===================\n";
-
-          $output = array("sendUser" => true);
-          $this->send($socket, $output);
-
-          continue;
-        }
-
-        $action = $this->unmask($rawData);
-
-        if ($action == "") {
-          $this->console("Empty action");
-          $this->disconnect($socket);
-          continue;
-        }
-
-        //Browser refresh / close
-        if ($action == chr(3).chr(233)) {
-          $this->console("Browser refresh / close", "red");
-          $this->disconnect($socket);
-          continue;
-        }
-
-        $this->console("Action: [{$action}]");
-
-        if ($action == "ping") {
-          $output = array();
-          $output['ping'] = true;
-          $this->send($socket, $output);
-
-          // $this->console("Ping from: [{$user->login}]", "dark_gray");
-
-          continue;
-        }
-
-        if (($pos = strpos($action, "user ")) === 0 && ($user || !$loggedon)) {
-          $name = substr($action, $pos + 5);
-
-          $output = array('sendPass' => true);
-          $this->send($socket, $output);
-
-          $this->addUser($socket_index, $name);
-
-          continue;
-        }
-
-        if (($pos = strpos($action, "pass ")) === 0) {
-          $name = substr($action, $pos + 7);
-
-          $output = array("logonOk" => true);
-
-          $output["refreshInventory"] = $this->getAllThingsFrom($user);
-          $output["refreshOffers"] = $this->getAllOffers();
-
-          $this->send($socket, $output);
-
-          unset($output);
-
-          continue;
-        }
-
-        if ((strpos($action, "offer ")) === 0) {
-          $thingUUID = substr($action, 6);
-
-          $offer = offer::createNew($thingUUID);
-
-          if ($offer instanceof offer) {
-            $this->console("newOffer >> `{$offer->itemName}` from `{$offer->owner->login}`", "cyan");
-            $this->offerToSend[] = $offer;
-
-            $output = array();
-            $output["offerAccepted"] = $offer;
-            $this->send($socket, $output);
-            unset($output);
-          }
-
-          unset($offer);
-
-          continue;
-        }
-
-        $this->console("Message from: [{$user->login}]: {$action}", "cyan");
-
-        //Mensagem recebida
-        $skipSockets = array($this->master, $socket);
-        $them = array_diff($this->allsockets, $skipSockets);
-        $output = array();
-        $output['message'] = $user->login.': '.$action;
-        foreach ($them as $sock) {
-          $this->send($sock, $output);
-        }
-      } //foreach socket_select
-
-
-      //server messages
-
-
-      $output = array();
-
-      if ($this->usersChanged) {
-        $this->console("Sending users [".count($this->users)."]", "brown");
-
-        $output["users"] = array();
-        foreach($this->users as $user) {
-          $output["users"][] = $user->login;
-        }
-
-        // $output["users"] = $this->users;
-        $this->usersChanged = false;
+        $output["newOffer"][] = $obj;
       }
+      $this->offerToSend = array();
+    }
 
-      if (count($this->offerToSend) > 0) {
-        $output["newOffer"] = array();
-        foreach($this->offerToSend as $offer) {
+    $timeToPick = false;
+    $timeDiff = (microtime(true) - $this->lastTime) * 1000;
+    if ($timeDiff >= 5000) {
+      $timeToPick = true;
+      $broadMsg = "Still alive, loop id: {$loopId}";
+      $this->console("Broadcast >> ".$broadMsg, "brown");
 
-          $obj = (object) [
-            'iId' => $offer->itemUUID,
-            'nm' => $offer->itemName,
-            'qt' => 1,
-          ];
+      // $output["srvmsg"] = $broadMsg;
+      $this->lastTime = microtime(true);
+    }
 
-          $output["newOffer"][] = $obj;
+    if ($timeToPick || count($output) > 0) {
+
+      foreach ($this->users as $socket_index => $user) {
+
+        if ($user->login == "notLoggedYet") {
+          continue;
         }
-        $this->offerToSend = array();
-      }
 
-      $timeToPick = false;
-      $timeDiff = (microtime(true) - $this->lastTime) * 1000;
-      if ($timeDiff >= 5000) {
-        $timeToPick = true;
-        $broadMsg = "Still alive, loop id: {$this->counter}";
-        $this->console("Broadcast >> ".$broadMsg, "brown");
-
-        // $output["srvmsg"] = $broadMsg;
-        $this->lastTime = microtime(true);
-      }
-
-      if ($timeToPick || count($output) > 0) {
-
-        $destinSockets = array_diff($this->allsockets, array($this->master));
-        foreach ($destinSockets as $sock) {
-
-          // @todo verificar o jeito mais eficiente de descobrir o usuário amarrado no socket
-          $user = $this->getUserBySocket($sock);
-          if (!$user || !$user->uuid) {
-            continue;
+        $uniqOutput = $output;
+        if ($timeToPick && ($item = $this->pickItem())) {
+          $uniqOutput["newItem"][] = $item;
+          $this->console("newItem >> {$item["nm"]} to {$user->login}", "cyan");
+          $a = array(
+            "thingUUID" => "(INT)0x".str_replace("-", "", $item["uuid"])."(INT)",
+            "itemUUID" => "(INT)0x".str_replace("-", "", $item["id"])."(INT)",
+            "creationDTHR" => "(INT)NOW(6)(INT)",
+            "ownerUUID" => "(INT)0x".str_replace("-", "", $user->uuid)."(INT)",
+            "ownerDTHR" => "(INT)creationDTHR(INT)",
+          );
+          $this->con->execInsert($a, "tb_thing");
+          if ($this->con->status === false) {
+            echo "Pau\n";
+            echo $this->con->getDescRetorno()."\n";
+            echo $this->con->errno."-".$this->con->error."\n";
           }
+          unset($a);
+        }
 
-          $uniqOutput = $output;
-          if ($timeToPick && $item = $this->pickItem()) {
-            $uniqOutput["newItem"][] = $item;
-            $this->console("newItem >> {$item["nm"]} to {$user->login}", "cyan");
-            $a = array(
-              "thingUUID" => "(INT)0x".str_replace("-", "", $item["uuid"])."(INT)",
-              "itemUUID" => "(INT)0x".str_replace("-", "", $item["id"])."(INT)",
-              "creationDTHR" => "(INT)NOW(6)(INT)",
-              "ownerUUID" => "(INT)0x".str_replace("-", "", $user->uuid)."(INT)",
-              "ownerDTHR" => "(INT)creationDTHR(INT)",
-            );
-            $this->con->execInsert($a, "tb_thing");
-            if ($this->con->status === false) {
-              echo "Pau\n";
-              echo $this->con->getDescRetorno()."\n";
-              echo $this->con->errno."-".$this->con->error."\n";
-            }
-            unset($a);
-          }
-
-          if (count($uniqOutput) > 0) {
-            $this->send($sock, $uniqOutput);
-          }
+        if (count($uniqOutput) > 0) {
+          $this->sendByIndex($socket_index, $uniqOutput);
         }
       }
     }
-  }
-
-  private function getUserBySocket($sock) {
-    $socket_index = array_search($sock, $this->allsockets);
-
-    if (!array_key_exists($socket_index, $this->users)) {
-      return false;
-    }
-
-    return $this->users[$socket_index];
 
   }
 
@@ -509,11 +306,11 @@ class main extends socketWebSocket
     $this->usersChanged = true;
   }
 
-  protected function removeUser($socket) {
-    $user = $this->users[$socket];
+  protected function removeUser($socket_index) {
+    $user = $this->users[$socket_index];
     $this->console("User  -- [{$user->login}]", "red");
 
-    unset($this->users[$socket]);
+    unset($this->users[$socket_index]);
 
     $this->usersChanged = true;
   }

@@ -81,18 +81,12 @@ class socketWebSocket extends socket
   }
 
   final protected function messageReceived($socket_index, $rawData) {
-    $this->console(__CLASS__."->".__FUNCTION__." socket: `{$socket_index}`", "yellow");
+    // $this->console(__CLASS__."->".__FUNCTION__." socket: `{$socket_index}`", "yellow");
 
     // this is a new connection, no handshake yet
     if (!isset($this->handshakes[$socket_index])) {
       $this->do_handshake($rawData, $socket_index);
 
-      // echo "Handshakes / depois\n===================\n";
-      // var_dump($this->handshakes);
-      // echo "===================\nfim Handshakes / depois\n===================\n";
-
-      // $output = array("sendUser" => true);
-      // $this->sendByIndex($socket_index, $output);
       foreach($this->on_webSocketConnect as $func) {
         call_user_func($func, $socket_index);
       }
@@ -100,13 +94,12 @@ class socketWebSocket extends socket
       return true;
     }
 
-
     $unmaskedData = $this->unmask($rawData);
-    $this->console(__CLASS__."->".__FUNCTION__." -- unmaskedData: `{$unmaskedData}`", "yellow");
+    // $this->console(__CLASS__."->".__FUNCTION__." -- unmaskedData: `{$unmaskedData}`", "yellow");
 
     //Browser refresh / close
     if ($unmaskedData == chr(3).chr(233)) {
-      $this->console("Browser refresh / close", "red");
+      $this->console("Browser refresh / close on socket: `{$socket_index}`", "red");
       $this->closeConnection($socket_index);
       return true;
     }
@@ -145,12 +138,12 @@ class socketWebSocket extends socket
    * @param string $msg The message that will be send
    */
   protected function sendToAll($msg) {
-    parent::sendToOthers($this->encode2($msg));
+    parent::sendToAll($this->encode2($msg));
   }
 
 
   protected function openConnection($socket_index) {
-    $this->console("-------openConnection {$socket_index}", "yellow");
+    // $this->console("-------openConnection {$socket_index}", "yellow");
 
     if ($socket_index >= 0) {
       unset($this->handshakes[$socket_index]);
