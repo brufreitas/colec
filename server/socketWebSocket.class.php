@@ -143,7 +143,7 @@ class socketWebSocket extends socket
 
 
   protected function openConnection($socket_index) {
-    // $this->console("-------openConnection {$socket_index}", "yellow");
+    $this->console("WebSocket++ [{$socket_index}]", "green");
 
     if ($socket_index >= 0) {
       unset($this->handshakes[$socket_index]);
@@ -156,6 +156,10 @@ class socketWebSocket extends socket
    * @param socket $socket The socket to disconnect
    */
   protected function closeConnection($socket_index) {
+    if (!isset($this->handshakes[$socket_index])) {
+      return true;
+    }
+
     $this->console("WebSocket-- [{$socket_index}]", "light_red");
 
     if ($socket_index >= 0) {

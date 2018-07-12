@@ -301,14 +301,14 @@ class main extends socketWebSocket
     }
 
     $this->users[$socket_index] = $user;
-    $this->console("User  ++ [{$user->login}]", "green");
+    $this->console("User++ [{$socket_index}]=>[{$user->login}]", "green");
 
     $this->usersChanged = true;
   }
 
   protected function removeUser($socket_index) {
     $user = $this->users[$socket_index];
-    $this->console("User  -- [{$user->login}]", "red");
+    $this->console("User-- [{$socket_index}]=>[{$user->login}]", "light_red");
 
     unset($this->users[$socket_index]);
 

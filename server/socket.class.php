@@ -145,7 +145,7 @@ class socket
           $this->disconnect($socket);
 
           foreach($this->on_clientDisconnect as $func) {
-            call_user_func($func, $new_socket_index);
+            call_user_func($func, $socket_index);
           }
 
           continue;
