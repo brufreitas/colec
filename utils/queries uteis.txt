@@ -1,3 +1,13 @@
+---Things per user
+SELECT
+  u.login AS ownwer,
+  COUNT(t.thingUUID) AS qtt
+FROM tb_thing t
+  LEFT JOIN tb_user u ON (u.userUUID = t.ownerUUID)
+GROUP BY t.ownerUUID
+ORDER BY qtt DESC
+
+
 SELECT
   HEX(t.thingUUID) AS uuid,
   HEX(t.itemUUID) AS id, 
