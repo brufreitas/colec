@@ -7,6 +7,10 @@ FROM tb_thing t
 GROUP BY t.ownerUUID
 ORDER BY qtt DESC
 
+---Novo usuário (pegar UUIDs em /utils/UUIDV4 Livres.txt)
+INSERT INTO tb_user VALUES
+  (0x<*******UUID*********>, 'Chrome6', 'a');
+
 
 SELECT
   HEX(t.thingUUID) AS uuid,
