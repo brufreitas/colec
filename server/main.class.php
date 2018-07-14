@@ -266,7 +266,7 @@ class main extends socketWebSocket
     $arr = json_decode($str, true);
 
     $ret = $arr[mt_rand(0, count($arr) - 1)];
-    $ret["uuid"] = strtoupper(str_replace("-", "", uuidv4()));
+    $ret["uuid"] = strtoupper(uuidv4());
     $ret["id"  ] = strtoupper(str_replace("-", "", $ret["id"]));
 
     return $ret;
