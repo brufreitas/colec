@@ -483,10 +483,19 @@ class Conexao {
     $mt_fim = microtime(true);
     $this->query_tempo = ($mt_fim - $mt_ini) * 1000;
 
+    if (in_array("debug-sql", $GLOBALS["argv"])) {
+      print "SQL: {$this->query_str}\n";
+      printf("Duração: %.3fms\n", $this->query_tempo);
+    }
+
     $this->errno = $this->func["errno"]($this->socket);
     $this->error = $this->func["error"]($this->socket);
 
     if ($this->intquery === false) {
+      if (in_array("debug-sql", $GLOBALS["argv"])) {
+        print "***SQL ERROR: {$this->errno}-{$this->error}\n";
+      }
+
       if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
         $GLOBALS["_arr_querys"][] = array(
           "conexao" => get_class($this),
@@ -519,6 +528,10 @@ class Conexao {
         $this->_isEOF = true;
       }
 
+      if (in_array("debug-sql", $GLOBALS["argv"])) {
+        print "Encontrou {$this->count} regs\n";
+      }
+
       if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
         $GLOBALS["_arr_querys"][] = array(
           "conexao" => get_class($this),
@@ -537,6 +550,9 @@ class Conexao {
       }
     } else {
       $this->rowsAffected = $this->func["affected_rows"]($this->socket);
+      if (in_array("debug-sql", $GLOBALS["argv"])) {
+        print "Afetou {$this->rowsAffected} regs\n";
+      }
 
       if ((isset($_SESSION["session"]) === true) && ($_SESSION["session"]["print_sql"] != "N") && ($tipo_query != "EXPLAIN")) {
         $GLOBALS["_arr_querys"][] = array(
