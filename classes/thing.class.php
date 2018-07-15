@@ -16,7 +16,7 @@ class thing extends item
     $con->query($q);
 
     if ($con->count == 0) {
-      echo "Não reconheço {$uuid}\n";
+      echo "Não reconheço thing {$uuid}\n";
       unset($con);
       return false;
     }
