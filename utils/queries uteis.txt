@@ -7,6 +7,21 @@ FROM tb_thing t
 GROUP BY t.ownerUUID
 ORDER BY qtt DESC
 
+
+---All things from user
+SELECT 
+  HEX(t.thingUUID) AS uuid, 
+  HEX(t.itemUUID) AS id, 
+  i.itemName AS nm 
+FROM tb_thing t 
+LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID) 
+LEFT JOIN tb_offer o ON (t.thingUUID = o.thingUUID) 
+WHERE 
+  t.ownerUUID = 0x9E9366C77D934550B3050F5052CBCDE5
+  AND ISNULL(o.offerUUID) 
+ORDER BY i.itemName
+
+
 ---Novo usuário (pegar UUIDs em /utils/UUIDV4 Livres.txt)
 INSERT INTO tb_user VALUES
   (0x<*******UUID*********>, 'Chrome6', 'a');
@@ -24,6 +39,8 @@ WHERE
 #  AND ISNULL(o.offerUUID)
 ORDER BY nm
 , t.thingUUID
+
+
 
 
 
