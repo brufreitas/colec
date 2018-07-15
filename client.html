@@ -118,6 +118,12 @@ $(document).ready(function() {
           removeFromInventory(data.offerAccepted);
         }
 
+        if (data.offerTaken != undefined) {
+          message('offerTaken! ' + data.offerTaken.nm, 'newItem');
+          addToInventory(data.offerTaken);
+          sortli('#inventory ul');
+        }
+
         if (data.refreshInventory != undefined) {
           $('#inventory ul').html('');
           $('#invQtd').html('0');
@@ -148,6 +154,14 @@ $(document).ready(function() {
           for (i in data.newOffer) {
             message('newOffer! ' + data.newOffer[i].nm, 'newOffer');
             addToOffer(data.newOffer[i]);
+          }
+          sortli('#offers ul');
+        }
+
+        if (data.removeOffer != undefined) {
+          for (i in data.removeOffer) {
+            message('removeOffer! ' + data.removeOffer[i].nm, 'newOffer');
+            removeFromOffer(data.removeOffer[i]);
           }
           sortli('#offers ul');
         }
@@ -215,17 +229,13 @@ $(document).ready(function() {
 
   function addToOffer(offer) {
     // console.log(offer);
-    if (isNaN(offer.qt)) {
-      offer.qt = 1;
-    } else {
-      offer.qt = new Number(offer.qt);
-    }
+    offer.qt = new Number(offer.qt);
 
-    var liSel = $('#offers ul li#' + offer.iId);
-    if (liSel.length == 0) {
+    var li = $('#offers ul li#' + offer.iId);
+    if (li.length == 0) {
       $('#offers ul').append('<li id="' + offer.iId + '"><span class="nm">' + offer.nm + '</span><span class="qtd">' + offer.qt + '</span></li>');
     } else {
-      var spQtd = liSel.children('.qtd');
+      var spQtd = li.children('.qtd');
       var qtd = new Number(spQtd.html());
       if (isNaN(qtd)) {
         qtd = offer.qt;
@@ -233,6 +243,29 @@ $(document).ready(function() {
         qtd += offer.qt;
       }
       spQtd.html(qtd);
+    }
+  }
+
+  function removeFromOffer(offer) {
+    offer.qt = new Number(offer.qt);
+
+    var li = $('#offers ul li#' + offer.iId);
+    if ($(li).length == 0) {
+      return false;
+    }
+
+    var spQtd = li.children('.qtd');
+    var qtd = new Number(spQtd.html());
+    if (isNaN(qtd)) {
+      qtd = 0;
+    }
+    qtd -= offer.qt;
+
+    if (qtd <= 0) {
+      li.remove();
+    } else {
+      spQtd.html(qtd);
+      li.removeClass('waiting');
     }
   }
 
@@ -290,11 +323,16 @@ $(document).ready(function() {
       return false;
     }
 
-
-    // alert($(this).html());
-
-
     sendPacket('offer ' + $(this).children('.thing').first().attr('id'));
+    $(this).addClass('waiting');
+  });
+
+  $("#offers ul").on("click", "li", function() {
+    if (socket.readyState != 1 || $(this).hasClass('waiting')) {
+      return false;
+    }
+
+    sendPacket('takeOffer ' + $(this).attr('id'));
     $(this).addClass('waiting');
   });
 });

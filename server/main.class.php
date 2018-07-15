@@ -7,6 +7,7 @@ require_once("classes/user.class.php");
 require_once("classes/item.class.php");
 require_once("classes/thing.class.php");
 require_once("classes/offer.class.php");
+require_once("classes/trade.class.php");
 
 
 
@@ -81,6 +82,26 @@ class main extends socketWebSocket
 
       return false;
     }
+
+    if ((strpos($message_string, "takeOffer ")) === 0) {
+      $item = new item(substr($message_string, 10));
+
+      $trade = offer::take($item, $user);
+
+      if ($trade instanceof trade) {
+        $this->console("offerTaken >> `{$trade->itemName}` by `{$trade->owner->login}`", "light_blue");
+        $this->offerToSend[] = $trade;
+
+        $output = array(
+          "offerTaken" => $this->simplifyObj($trade),
+        );
+        $this->sendByIndex($socket_index, $output);
+        return true;
+      }
+
+      return false;
+    }
+
 
     if ((strpos($message_string, "chat ")) === 0) {
       $chat_msg = substr($message_string, $pos + 5);
@@ -174,15 +195,20 @@ class main extends socketWebSocket
 
     if (count($this->offerToSend) > 0) {
       $output["newOffer"] = array();
+      $output["removeOffer"] = array();
       foreach($this->offerToSend as $offer) {
 
         $obj = (object) [
-          'iId' => $offer->itemUUID,
-          'nm' => $offer->itemName,
-          'qt' => 1,
+          "iId" => $offer->itemUUID,
+          "nm" => $offer->itemName,
+          "qt" => 1,
         ];
 
-        $output["newOffer"][] = $obj;
+        if ($offer instanceof trade){
+          $output["removeOffer"][] = $obj;
+        } else {
+          $output["newOffer"][] = $obj;
+        }
       }
       $this->offerToSend = array();
     }
@@ -376,6 +402,31 @@ class main extends socketWebSocket
         "qt" => $this->con->result["qt"],
       );
       $this->con->getFetchAssoc();
+    }
+
+    return $ret;
+  }
+
+  private function simplifyObj($obj) {
+    if ($obj instanceof offer) {
+      $ret = (object) [
+        "iId" => $obj->itemUUID,
+        "nm" => $obj->itemName,
+        "qt" => 1,
+      ];
+    } elseif ($obj instanceof trade) {
+      $ret = (object) [
+        "uuid" => $obj->thingUUID,
+        "id" => $obj->itemUUID,
+        "nm" => $obj->itemName,
+        "k" => $obj->karma,
+      ];
+    } else {
+      $ret = (object) [
+        "uuid" => $obj->thingUUID,
+        "id" => $obj->itemUUID,
+        "nm" => $obj->itemName,
+      ];
     }
 
     return $ret;
