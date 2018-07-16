@@ -121,6 +121,7 @@ $(document).ready(function() {
         if (data.offerTaken != undefined) {
           message('offerTaken! ' + data.offerTaken.nm, 'newItem');
           addToInventory(data.offerTaken);
+          karmaDown(data.offerTaken.k);
           sortli('#inventory ul');
         }
 
@@ -131,6 +132,10 @@ $(document).ready(function() {
           for (i in data.refreshInventory.t) {
             addToInventory(data.refreshInventory.t[i]);
           }
+        }
+
+        if (data.refreshKarma != undefined) {
+          $('#karma').html(data.refreshKarma.k);
         }
 
         if (data.newItem != undefined) {
@@ -269,6 +274,22 @@ $(document).ready(function() {
     }
   }
 
+  function karmaUp(amount) {
+    karmaChange(amount);
+  }
+
+  function karmaDown(amount) {
+    karmaChange(amount * -1);
+  }
+
+  function karmaChange(amount) {
+    console.log(amount);
+    console.log($("#karma").text());
+    var qtd = new Number($("#karma").text()) + amount;
+    console.log(qtd);
+    $("#karma").html(qtd);
+  }
+
   function localPing() {
     if (reconnect) {
       pingTime = new Date().getTime();
@@ -344,6 +365,14 @@ body {
   font-family: Consolas, "Courier New", monospace;
   font-size: 14px;
   line-height: 19px;
+  margin: 25px 0px 0px 0px;
+}
+
+#topbar {
+  top: 0px;
+  position: fixed;
+  width: 100%;
+  border-bottom: 1px solid gray;
 }
 
 h1, h2 {
@@ -485,11 +514,15 @@ h1, h2 {
 .waiting {
   color: #CCC;
 }
+
 </style>
 <title>Game Client</title>
 </head>
 <body>
   <div id="wrapper">
+    <div id="topbar">
+      <span>K: </span><span id="karma">0</span>
+    </div>
     <div id="container">
       <h1>Client</h1>
       <button id="disconnect">Disconnect</button>

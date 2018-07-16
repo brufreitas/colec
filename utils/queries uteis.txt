@@ -27,6 +27,14 @@ INSERT INTO tb_user VALUES
   (0x<*******UUID*********>, 'Chrome6', 'a');
 
 
+---Karma do usuário
+SELECT
+  IFNULL((SELECT SUM(karma) FROM tb_trade WHERE fromUUID = 0x9E9366C77D934550B3050F5052CBCDE5), 0) -
+  IFNULL((SELECT SUM(karma) FROM tb_trade WHERE toUUID = 0x9E9366C77D934550B3050F5052CBCDE5  ), 0)
+
+
+
+
 SELECT
   HEX(t.thingUUID) AS uuid,
   HEX(t.itemUUID) AS id, 

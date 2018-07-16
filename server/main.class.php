@@ -54,10 +54,11 @@ class main extends socketWebSocket
     if (($pos = strpos($message_string, "pass ")) === 0) {
       $pass = substr($message_string, $pos + 5);
 
-      $output = array(
+      $output = array (
         "logonOk" => true,
         "refreshInventory" => $this->getAllThingsFrom($user),
         "refreshOffers" => $this->getAllOffers(),
+        "refreshKarma" => $this->getKarmaFrom($user),
       );
 
       $this->sendByIndex($socket_index, $output);
@@ -406,6 +407,26 @@ class main extends socketWebSocket
 
     return $ret;
   }
+
+  private function getKarmaFrom($user) {
+
+    $q = "SELECT ".
+           "IFNULL((SELECT SUM(karma) FROM tb_trade WHERE fromUUID = 0x{$user->uuid}), 0) - ".
+           "IFNULL((SELECT SUM(karma) FROM tb_trade WHERE toUUID = 0x{$user->uuid}), 0) AS karma";
+    $this->con->query($q);
+
+    if ($this->con->status === false) {
+      $this->console($this->con->getDescRetorno(), "white", "red");
+      $this->console($this->con->errno."-".$this->con->error, "white", "red");
+      return false;
+    }
+
+    return [
+      "k" => $this->con->result["karma"]
+    ];
+
+  }
+
 
   private function simplifyObj($obj) {
     if ($obj instanceof offer) {
