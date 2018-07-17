@@ -90,13 +90,20 @@ class main extends socketWebSocket
       $trade = offer::take($item, $user);
 
       if ($trade instanceof trade) {
-        $this->console("offerTaken >> `{$trade->itemName}` by `{$trade->owner->login}`", "light_blue");
+        $this->console("offerTaken >> `{$trade->itemName}` by `{$trade->owner->login}` from `{$trade->formerOwner->login}`", "light_blue");
         $this->offerToSend[] = $trade;
 
-        $output = array(
+        $output = [
           "offerTaken" => $this->simplifyObj($trade),
-        );
+        ];
         $this->sendByIndex($socket_index, $output);
+
+        // @todo offerBlabla? Arrumar um nome decente!
+        $output = [
+          "offerBlabla" => $this->simplifyObj($trade),
+        ];
+        $this->sendToUser($trade->formerOwner, $output);
+
         return true;
       }
 
@@ -154,6 +161,30 @@ class main extends socketWebSocket
   protected function sendByIndex($socket_index, $arrSend) {
     parent::sendByIndex($socket_index, $this->prepareArraytoSend($arrSend));
   }
+
+  /**
+   * Convert a array to a JSON string and send to the $user if logged
+   *
+   * @param int $socket_index The index of the socket to send the data
+   * @param array $arrSend An array that will be converted to JSON and send
+   */
+  protected function sendToUser($user, $arrSend) {
+    $socket_index = -1;
+    foreach ($this->users as $socketAux => $userAux) {
+      if ($user->uuid == $userAux->uuid) {
+        $socket_index = $socketAux;
+        break;
+      }
+    }
+
+    if ($socket_index == -1) {
+      $this->console("Cannot sendToUser. User `{$user->login}` is not logged", "red");
+      return false;
+    }
+
+    parent::sendByIndex($socket_index, $this->prepareArraytoSend($arrSend));
+  }
+
 
   /**
    * Convert a array to a JSON string and send to everyone else but the $socket_index

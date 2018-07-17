@@ -125,6 +125,12 @@ $(document).ready(function() {
           sortli('#inventory ul');
         }
 
+        if (data.offerBlabla != undefined) {
+          message('offerBlabla! ' + data.offerBlabla.nm + ' + K ' + data.offerBlabla.k, 'newOffer');
+          karmaUp(data.offerBlabla.k);
+          sortli('#inventory ul');
+        }
+
         if (data.refreshInventory != undefined) {
           $('#inventory ul').html('');
           $('#invQtd').html('0');

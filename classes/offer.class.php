@@ -98,7 +98,9 @@ class offer extends thing
       return false;
     }
 
-    return new trade($thingUUID, $karma);
+    $formerOwner = new user($fromUUID);
+
+    return new trade($thingUUID, $karma, $formerOwner);
   }
 
   public static function createNew($thingUUID) {

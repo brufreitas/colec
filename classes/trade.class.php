@@ -7,10 +7,11 @@ class trade extends thing
 {
   public $karma;
 
-  public function __construct($thingUUID, $karma) {
+  public function __construct($thingUUID, $karma, $formerOwner) {
     parent::__construct($thingUUID);
 
     $this->karma = $karma;
+    $this->formerOwner = $formerOwner;
   }
 
 }
