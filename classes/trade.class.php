@@ -6,6 +6,7 @@ require_once("classes/thing.class.php");
 class trade extends thing
 {
   public $karma;
+  public $formerOwner;
 
   public function __construct($thingUUID, $karma, $formerOwner) {
     parent::__construct($thingUUID);
