@@ -314,7 +314,10 @@ class main extends socketWebSocket
     // $chances = array(true, false, false); //33,3%
     // $chances = array(true, false); //50%
     // $chances = array(true, true, true, false); //75%
-    $chance = $chances[random_int(0, count($chances) - 1)];
+    $chance = mt_rand(0, count($chances) - 1);
+    // echo "Chance: [{$chance}]\n";
+
+    $chance = $chances[$chance];
 
     if (!$chance) {
       return false;
@@ -323,7 +326,7 @@ class main extends socketWebSocket
     $str = file_get_contents("/var/www/html/colec/collections/worldcup2018.json");
     $arr = json_decode($str, true);
 
-    $ret = $arr[random_int(0, count($arr) - 1)];
+    $ret = $arr[mt_rand(0, count($arr) - 1)];
     $ret["uuid"] = strtoupper(uuidv4());
     $ret["id"  ] = strtoupper(str_replace("-", "", $ret["id"]));
 
