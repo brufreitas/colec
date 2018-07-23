@@ -293,33 +293,12 @@ class main extends socketWebSocket
   }
 
   private function pickItem() {
-    $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //4,7%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,0%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,2%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,5%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //5,8%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //6,2%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false, false); //6,6%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false, false); //7,1%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false, false); //7,6%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false, false); //8%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false, false); //9%
-    // $chances = array(true, false, false, false, false, false, false, false, false, false); //10%
-    // $chances = array(true, false, false, false, false, false, false, false, false); //11,1%
-    // $chances = array(true, false, false, false, false, false, false, false); //12,5%
-    // $chances = array(true, false, false, false, false, false, false); //14,3%
-    // $chances = array(true, false, false, false, false, false); //16,7%
-    // $chances = array(true, false, false, false, false); //20%
-    // $chances = array(true, false, false, false); //25%
-    // $chances = array(true, false, false); //33,3%
-    // $chances = array(true, false); //50%
-    // $chances = array(true, true, true, false); //75%
-    $chance = mt_rand(0, count($chances) - 1);
-    // echo "Chance: [{$chance}]\n";
+    $chance = 1 * 10; // em %
 
-    $chance = $chances[$chance];
+    $r = mt_rand(0, 1000);
+    print "Soteio: {$r}, Chance: {$chance}\n";
 
-    if (!$chance) {
+    if ($r > $chance) {
       return false;
     }
   
