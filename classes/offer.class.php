@@ -37,7 +37,7 @@ class offer extends thing
          "FROM tb_offer o ".
            "LEFT JOIN tb_thing t ON (o.thingUUID = t.thingUUID) ".
          "WHERE ".
-           "t.itemUUID = 0x{$item->itemUUID} ".
+           "t.itemID = '{$item->itemID}' ".
          "ORDER BY alreadyOwned DESC, o.offerStartDTHR ".
          "LIMIT 1";
 

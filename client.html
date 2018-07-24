@@ -119,14 +119,14 @@ $(document).ready(function() {
         }
 
         if (data.offerTaken != undefined) {
-          message('offerTaken! ' + data.offerTaken.nm, 'newItem');
+          message('offerTaken! ' + data.offerTaken.iNM, 'newItem');
           addToInventory(data.offerTaken);
           karmaDown(data.offerTaken.k);
           sortli('#inventory ul');
         }
 
         if (data.offerBlabla != undefined) {
-          message('offerBlabla! ' + data.offerBlabla.nm + ' + K ' + data.offerBlabla.k, 'newOffer');
+          message('offerBlabla! ' + data.offerBlabla.iNM + ' + K ' + data.offerBlabla.k, 'newOffer');
           karmaUp(data.offerBlabla.k);
           sortli('#inventory ul');
         }
@@ -146,7 +146,7 @@ $(document).ready(function() {
 
         if (data.newItem != undefined) {
           for (i in data.newItem) {
-            message('newItem! ' + data.newItem[i].nm, 'newItem');
+            message('newItem! ' + data.newItem[i].iNM, 'newItem');
             addToInventory(data.newItem[i]);
           }
           sortli('#inventory ul');
@@ -163,7 +163,7 @@ $(document).ready(function() {
 
         if (data.newOffer != undefined) {
           for (i in data.newOffer) {
-            message('newOffer! ' + data.newOffer[i].nm, 'newOffer');
+            message('newOffer! ' + data.newOffer[i].iNM, 'newOffer');
             addToOffer(data.newOffer[i]);
           }
           sortli('#offers ul');
@@ -171,7 +171,7 @@ $(document).ready(function() {
 
         if (data.removeOffer != undefined) {
           for (i in data.removeOffer) {
-            message('removeOffer! ' + data.removeOffer[i].nm, 'newOffer');
+            message('removeOffer! ' + data.removeOffer[i].iNM, 'newOffer');
             removeFromOffer(data.removeOffer[i]);
           }
           sortli('#offers ul');
@@ -205,9 +205,9 @@ $(document).ready(function() {
   }
 
   function addToInventory(thing) {
-    var liSel = '#inventory ul li#' + thing.id;
+    var liSel = '#inventory ul li#' + thing.iID;
     if ($(liSel).length == 0) {
-      $('#inventory ul').append('<li id="' + thing.id + '"><span class="nm">' + thing.nm + '</span><span class="qtd"></span></li>');
+      $('#inventory ul').append('<li id="' + thing.iID + '"><span class="nm">' + thing.iNM + '</span><span class="qtd"></span></li>');
     }
 
     $(liSel).append('<span id="' + thing.uuid + '" class="thing"></span>');
@@ -217,13 +217,13 @@ $(document).ready(function() {
   }
 
   function removeFromInventory(thing) {
-    // console.log(thing);
-    var liSel = '#inventory ul li#' + thing.itemUUID;
+    console.log(thing);
+    var liSel = '#inventory ul li#' + thing.iID;
     if ($(liSel).length == 0) {
       return false;
     }
 
-    $(liSel + ' #' + thing.thingUUID).remove();
+    $(liSel + ' #' + thing.uuid).remove();
 
     qtd = $(liSel + ' span.thing').length;
 
@@ -242,9 +242,9 @@ $(document).ready(function() {
     // console.log(offer);
     offer.qt = new Number(offer.qt);
 
-    var li = $('#offers ul li#' + offer.iId);
+    var li = $('#offers ul li#' + offer.iID);
     if (li.length == 0) {
-      $('#offers ul').append('<li id="' + offer.iId + '"><span class="nm">' + offer.nm + '</span><span class="qtd">' + offer.qt + '</span></li>');
+      $('#offers ul').append('<li id="' + offer.iID + '"><span class="nm">' + offer.iNM + '</span><span class="qtd">' + offer.qt + '</span></li>');
     } else {
       var spQtd = li.children('.qtd');
       var qtd = new Number(spQtd.html());
@@ -260,7 +260,7 @@ $(document).ready(function() {
   function removeFromOffer(offer) {
     offer.qt = new Number(offer.qt);
 
-    var li = $('#offers ul li#' + offer.iId);
+    var li = $('#offers ul li#' + offer.iID);
     if ($(li).length == 0) {
       return false;
     }
@@ -289,10 +289,7 @@ $(document).ready(function() {
   }
 
   function karmaChange(amount) {
-    console.log(amount);
-    console.log($("#karma").text());
     var qtd = new Number($("#karma").text()) + amount;
-    console.log(qtd);
     $("#karma").html(qtd);
   }
 

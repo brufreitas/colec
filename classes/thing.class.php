@@ -10,7 +10,7 @@ class thing extends item
   public $owner;
 
   public function __construct($uuid) {
-    $q = "SELECT HEX(ownerUUID) AS ownerUUID, HEX(itemUUID) AS itemUUID FROM tb_thing WHERE thingUUID = 0x{$uuid}";
+    $q = "SELECT HEX(ownerUUID) AS ownerUUID, itemID FROM tb_thing WHERE thingUUID = 0x{$uuid}";
 
     $con = new ConexaoLocal();
     $con->query($q);
@@ -21,7 +21,7 @@ class thing extends item
       return false;
     }
 
-    parent::__construct($con->result["itemUUID"]);
+    parent::__construct($con->result["itemID"]);
     $this->owner = new user($con->result["ownerUUID"]);
 
     $this->thingUUID = $uuid;

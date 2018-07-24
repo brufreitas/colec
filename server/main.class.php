@@ -75,8 +75,9 @@ class main extends socketWebSocket
         $this->offerToSend[] = $offer;
 
         $output = array(
-          "offerAccepted" => $offer,
+          "offerAccepted" => $this->simplifyThing($offer),
         );
+
         $this->sendByIndex($socket_index, $output);
         return true;
       }
@@ -228,18 +229,12 @@ class main extends socketWebSocket
     if (count($this->offerToSend) > 0) {
       $output["newOffer"] = array();
       $output["removeOffer"] = array();
-      foreach($this->offerToSend as $offer) {
+      foreach($this->offerToSend as $obj) {
 
-        $obj = (object) [
-          "iId" => $offer->itemUUID,
-          "nm" => $offer->itemName,
-          "qt" => 1,
-        ];
-
-        if ($offer instanceof trade){
-          $output["removeOffer"][] = $obj;
+        if ($obj instanceof trade){
+          $output["removeOffer"][] = $this->simplifyOffer($obj);
         } else {
-          $output["newOffer"][] = $obj;
+          $output["newOffer"][] = $this->simplifyOffer($obj);
         }
       }
       $this->offerToSend = array();
@@ -265,14 +260,14 @@ class main extends socketWebSocket
         }
 
         $uniqOutput = $output;
-        if ($timeToPick && ($item = $this->pickItem())) {
-          $uniqOutput["newItem"][] = $item;
-          $this->console("newItem >> {$item["nm"]} to {$user->login}", "cyan");
+        if ($timeToPick && ($thing = $this->pickItem())) {
+          $uniqOutput["newItem"][] = $thing;
+          $this->console("newItem >> {$thing["iNM"]} to {$user->login}", "cyan");
           $a = array(
-            "thingUUID" => "(INT)0x".str_replace("-", "", $item["uuid"])."(INT)",
-            "itemUUID" => "(INT)0x".str_replace("-", "", $item["id"])."(INT)",
+            "thingUUID" => "(INT)0x{$thing["uuid"]}(INT)",
+            "itemID" => $thing["iID"],
             "creationDTHR" => "(INT)NOW(6)(INT)",
-            "ownerUUID" => "(INT)0x".str_replace("-", "", $user->uuid)."(INT)",
+            "ownerUUID" => "(INT)0x{$user->uuid}(INT)",
             "ownerDTHR" => "(INT)creationDTHR(INT)",
           );
           $this->con->execInsert($a, "tb_thing");
@@ -282,6 +277,7 @@ class main extends socketWebSocket
             echo $this->con->errno."-".$this->con->error."\n";
           }
           unset($a);
+          unset($thing);
         }
 
         if (count($uniqOutput) > 0) {
@@ -293,21 +289,25 @@ class main extends socketWebSocket
   }
 
   private function pickItem() {
-    $chance = 1 * 10; // em %
+    $chance = 2.5 * 10; // em 0.x%
 
-    $r = mt_rand(0, 1000);
-    print "Soteio: {$r}, Chance: {$chance}\n";
+    $r = mt_rand(1, 1000);
 
     if ($r > $chance) {
       return false;
     }
-  
-    $str = file_get_contents("/var/www/html/colec/collections/worldcup2018.json");
-    $arr = json_decode($str, true);
 
-    $ret = $arr[mt_rand(0, count($arr) - 1)];
+    $q = "SELECT itemID AS iID, itemName AS iNM FROM tb_item  ORDER BY rand() LIMIT 1";
+    $this->con->query($q);
+
+    if ($this->con->status === false) {
+      $this->console($this->con->getDescRetorno(), "white", "red");
+      $this->console($this->con->errno."-".$this->con->error, "white", "red");
+      return false;
+    }
+
+    $ret = $this->con->result;
     $ret["uuid"] = strtoupper(uuidv4());
-    $ret["id"  ] = strtoupper(str_replace("-", "", $ret["id"]));
 
     return $ret;
   }
@@ -360,10 +360,10 @@ class main extends socketWebSocket
 
     $q = "SELECT ".
            "HEX(t.thingUUID) AS uuid, ".
-           "HEX(t.itemUUID) AS id, ".
-           "i.itemName AS nm ".
+           "t.itemID AS iID, ".
+           "i.itemName AS iNM ".
          "FROM tb_thing t ".
-         "LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID) ".
+         "LEFT JOIN tb_item i ON (t.itemID = i.itemID) ".
          "LEFT JOIN tb_offer o ON (t.thingUUID = o.thingUUID) ".
          "WHERE ".
            "t.ownerUUID = 0x{$user->uuid} ".
@@ -378,11 +378,7 @@ class main extends socketWebSocket
     }
 
     while (!$this->con->isEof()) {
-      $ret["t"][] = array(
-        "uuid" => $this->con->result["uuid"],
-        "id" => $this->con->result["id"],
-        "nm" => $this->con->result["nm"],
-      );
+      $ret["t"][] = $this->con->result;
       $this->con->getFetchAssoc();
     }
 
@@ -394,12 +390,12 @@ class main extends socketWebSocket
 
     $q = "SELECT ".
            "COUNT(*) AS qt, ".
-           "HEX(i.itemUUID) AS iId, ".
-           "i.itemName AS nm ".
+           "i.itemID AS iID, ".
+           "i.itemName AS iNM ".
          "FROM tb_offer o ".
          "LEFT JOIN tb_thing t ON (o.thingUUID = t.thingUUID) ".
-         "LEFT JOIN tb_item i ON (t.itemUUID = i.itemUUID) ".
-         "GROUP BY i.itemUUID ".
+         "LEFT JOIN tb_item i ON (t.itemID = i.itemID) ".
+         "GROUP BY i.itemID ".
          "ORDER BY i.itemName";
     $this->con->query($q);
 
@@ -410,11 +406,7 @@ class main extends socketWebSocket
     }
 
     while (!$this->con->isEof()) {
-      $ret["o"][] = array(
-        "iId" => $this->con->result["iId"],
-        "nm" => $this->con->result["nm"],
-        "qt" => $this->con->result["qt"],
-      );
+      $ret["o"][] = $this->con->result;
       $this->con->getFetchAssoc();
     }
 
@@ -437,33 +429,39 @@ class main extends socketWebSocket
     return [
       "k" => $this->con->result["karma"]
     ];
-
   }
-
 
   private function simplifyObj($obj) {
     if ($obj instanceof offer) {
-      $ret = (object) [
-        "iId" => $obj->itemUUID,
-        "nm" => $obj->itemName,
-        "qt" => 1,
-      ];
+      $ret = $this->simplifyOffer($obj);
     } elseif ($obj instanceof trade) {
       $ret = (object) [
         "uuid" => $obj->thingUUID,
-        "id" => $obj->itemUUID,
-        "nm" => $obj->itemName,
+        "iID" => $obj->itemID,
+        "iNM" => $obj->itemName,
         "k" => $obj->karma,
       ];
-    } else {
-      $ret = (object) [
-        "uuid" => $obj->thingUUID,
-        "id" => $obj->itemUUID,
-        "nm" => $obj->itemName,
-      ];
+    } elseif ($obj instanceof thing) {
+      $ret = $this->simplifyThing($obj);
     }
 
     return $ret;
+  }
+
+  private function simplifyThing($thing) {
+    return (object) [
+      "uuid" => $thing->thingUUID,
+      "iID" => $thing->itemID,
+      "iNM" => $thing->itemName,
+    ];
+  }
+
+  private function simplifyOffer($offer) {
+    return (object) [
+      "iID" => $offer->itemID,
+      "iNM" => $offer->itemName,
+      "qt" => 1,
+    ];
   }
 }
 ?>
