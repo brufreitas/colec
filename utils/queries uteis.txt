@@ -7,6 +7,41 @@ FROM tb_thing t
 GROUP BY t.ownerUUID
 ORDER BY qtt DESC
 
+--- INSERT tb_item
+INSERT INTO tb_item VALUES
+  ("jmvu6jjl5gf9m64s", "O Sol"),
+  ("d953klnwa2g7jetu", "Mercúrio"),
+  ("0i0xlo7zi3vc53d4", "Vênus"),
+  ("qcqmy1644ykzwuj4", "Terra"),
+  ("qif7id5eiw772ci1", "Marte"),
+  ("oaj8ceasn8fkkkqf", "Júpiter"),
+  ("d1hmei9wlg78fs9e", "Saturno"),
+  ("ztdc310tvr3frij2", "Netuno"),
+  ("6sk4co55tuvreiz3", "Plutão");
+
+--- INSERT tb_col_slot
+INSERT INTO tb_col_slot VALUES
+  ("76619msgeveo", "f623q3c2", 1),
+  ("72zvypl2fvmv", "f623q3c2", 2),
+  ("pmwx4ti9ifzp", "f623q3c2", 3),
+  ("k1grhgput7yw", "f623q3c2", 4),
+  ("dlcqn3ak9yw1", "f623q3c2", 5),
+  ("3q839s8n3xbu", "f623q3c2", 6),
+  ("7hj7v7q510v8", "f623q3c2", 7),
+  ("dwg8fg724yuc", "f623q3c2", 8),
+  ("wtae61i6dirv", "f623q3c2", 9);
+
+--- Collecs x itens
+SELECT 
+  c.collecName,
+  cs.slotPos,
+  csi.prefOrder,
+  i.itemName
+FROM tb_collec c
+LEFT JOIN tb_col_slot      cs  ON (c .collecID = cs .collecID)
+LEFT JOIN tb_col_slot_item csi ON (cs.slotID   = csi.slotID  )
+LEFT JOIN tb_item i            ON (csi.itemID  = i  .itemID  )
+ORDER BY  c.collecName, cs.slotPos, csi.prefOrder
 
 ---All things from user
 SELECT 
