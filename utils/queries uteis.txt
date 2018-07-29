@@ -31,6 +31,10 @@ INSERT INTO tb_col_slot VALUES
   ("dwg8fg724yuc", "f623q3c2", 8),
   ("wtae61i6dirv", "f623q3c2", 9);
 
+--- INSERT tb_col_slot
+INSERT INTO tb_stand (standID, standName, coord) VALUES
+  ('3gid72z2', 'Marco Zero', POINT(-23.550445, -46.633911))
+
 --- Collecs x itens
 SELECT 
   c.collecName,
@@ -64,7 +68,8 @@ INSERT INTO tb_user VALUES
 
 ---Karma do usuário
 SELECT
-  IFNULL((SELECT SUM(karma) FROM tb_trade WHERE fromUUID = 0x9E9366C77D934550B3050F5052CBCDE5), 0) -
+  IFNULL((SELECT SUM(karma) FROM tb_trade WHERE fromUUID = 0x9E9366C77D934550B3050F5052CBCDE5), 0)
+  -
   IFNULL((SELECT SUM(karma) FROM tb_trade WHERE toUUID = 0x9E9366C77D934550B3050F5052CBCDE5  ), 0)
 
 
