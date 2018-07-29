@@ -285,19 +285,69 @@ class main extends socketWebSocket
         }
       }
     }
-
   }
 
   private function pickItem() {
-    $chance = 2.5 * 10; // em 0.x%
+    static $bag;
+    $chance = 0.025; 
+    // $chance = 0.1; 
 
-    $r = mt_rand(1, 1000);
+    if (!$bag) {
+      $bag = array();
+    }
 
-    if ($r > $chance) {
+    echo "Bag: ".count($bag)."\n";
+
+    if (count($bag) <= 500) {
+      echo "Enchendo o saco! \n";
+      $chance = round($chance * 1000);
+
+      // echo "Chance: ".($chance)."\n";
+
+      $bag = 
+        array_fill(0, $chance, true) +
+        array_fill($chance + 1, 1000 - $chance, false);
+
+      shuffle($bag);
+    }
+
+    // var_dump($bag);
+
+    $pickKey = array_rand($bag);
+
+    $pick = array_splice($bag, $pickKey, 1);
+
+    echo "pickKey: ".($pickKey)."\n";
+    var_dump($pick[0]);
+
+    // array_shift($bag)
+    $aux = array();
+    foreach($bag as $bool) {
+      @$aux[$bool]++;
+    }
+
+    printf("Trues: %d (%0.3f), falses: %d (%0.3f)\n", $aux[true], (($aux[true] / count($bag)) * 100), $aux[false], (($aux[false] / count($bag)) * 100));
+    // printf("Trues: %d (%.01f), falses: %d (%.01f)\n", $aux[true], ($aux[true] / count($aux) * 100), $aux[false], ($aux[false] / count($aux) * 100));
+    // var_dump($aux);
+
+    // echo "Próximo true: ".(array_search(true, $bag))."\n";
+
+    if (!$pick[0]) {
       return false;
     }
 
-    $q = "SELECT itemID AS iID, itemName AS iNM FROM tb_item  ORDER BY rand() LIMIT 1";
+    // $q = "SELECT itemID AS iID, itemName AS iNM FROM tb_item i LEFT JOIN tb_collec c ON () ORDER BY RAND() LIMIT 1";
+    $q = 
+    "SELECT ".
+      "i.itemID AS iID, ".
+      "i.itemName AS iNM ".
+    "FROM tb_collec c ".
+    "LEFT JOIN tb_col_slot      cs   ON (c .collecID = cs .collecID) ".
+    "LEFT JOIN tb_col_slot_item csi  ON (cs.slotID   = csi.slotID  ) ".
+    "LEFT JOIN tb_item          i    ON (csi.itemID  = i  .itemID  ) ".
+    "WHERE c.collecID = 'f623q3c2' ".
+    "ORDER BY RAND() ".
+    "LIMIT 1";
     $this->con->query($q);
 
     if ($this->con->status === false) {
