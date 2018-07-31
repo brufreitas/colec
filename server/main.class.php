@@ -289,14 +289,23 @@ class main extends socketWebSocket
 
   private function pickItem() {
     static $bag;
+    static $chanceTrueMax;
+    static $chanceTrueMin;
+    static $chanceFalseMax;
+    static $chanceFalseMin;
+
     $chance = 0.025; 
     // $chance = 0.1; 
 
     if (!$bag) {
       $bag = array();
-    }
+      $chanceTrueMax  = -1;
+      $chanceTrueMin  = 999;
+      $chanceFalseMax = -1;
+      $chanceFalseMin = 999;
+      }
 
-    echo "Bag: ".count($bag)."\n";
+    // echo "Bag: ".count($bag)."\n";
 
     if (count($bag) <= 500) {
       echo "Enchendo o saco! \n";
@@ -314,11 +323,7 @@ class main extends socketWebSocket
     // var_dump($bag);
 
     $pickKey = array_rand($bag);
-
     $pick = array_splice($bag, $pickKey, 1);
-
-    echo "pickKey: ".($pickKey)."\n";
-    var_dump($pick[0]);
 
     // array_shift($bag)
     $aux = array();
@@ -326,11 +331,15 @@ class main extends socketWebSocket
       @$aux[$bool]++;
     }
 
-    printf("Trues: %d (%0.3f), falses: %d (%0.3f)\n", $aux[true], (($aux[true] / count($bag)) * 100), $aux[false], (($aux[false] / count($bag)) * 100));
-    // printf("Trues: %d (%.01f), falses: %d (%.01f)\n", $aux[true], ($aux[true] / count($aux) * 100), $aux[false], ($aux[false] / count($aux) * 100));
-    // var_dump($aux);
+    $chanceTrue  = (($aux[true ] / count($bag)) * 100);
+    $chanceFalse = (($aux[false] / count($bag)) * 100);
 
-    // echo "Próximo true: ".(array_search(true, $bag))."\n";
+    $chanceTrueMax  = max($chanceTrueMax, $chanceTrue);
+    $chanceTrueMin  = min($chanceTrueMin, $chanceTrue);
+    $chanceFalseMax = max($chanceFalseMax, $chanceFalse);
+    $chanceFalseMin = min($chanceFalseMin, $chanceFalse);
+
+    printf("Sorteio: %-5s | Bag: %d | Trues: %d (%0.3f) picos: (%0.3f / %0.3f) | Falses: %d (%0.3f) picos: (%0.3f / %0.3f)\n", json_encode($pick[0]), count($bag), $aux[true], $chanceTrue, $chanceTrueMin, $chanceTrueMax, $aux[false], $chanceFalse, $chanceFalseMin, $chanceFalseMax);
 
     if (!$pick[0]) {
       return false;
