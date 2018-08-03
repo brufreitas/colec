@@ -3,18 +3,29 @@
 <head>
 <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
-<title>GeekOnJava: Directions Complex</title>
-  
+<title>Google animated</title>
 
 <style>
-html{height:100%;}
-body{height:100%;margin:0px;font-family: Helvetica,Arial;}
+html {
+  height:100%;
+}
+
+body {
+  height: 100%;
+  margin: 0px;
+  font-family: Helvetica, Arial;
+}
+
+#map_canvas {
+  width: 80%;
+  height: 95%;
+  margin: 0px auto;
+}
 </style>
 
 <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
-<script type ="text/javascript" src="v3_epoly.js"></script>
+<script type="text/javascript" src="v3_epoly.js"></script>
 <script type="text/javascript">
-
   var map;
   var directionDisplay;
   var directionsService;
@@ -31,13 +42,17 @@ body{height:100%;margin:0px;font-family: Helvetica,Arial;}
 
   var lastVertex = 1;
   var stepnum = 0;
-  var step = 0.185; // 5; // metros por tick
+
+  var initialWait = 2000; //mili before start to walk
+  var speed = 10.5; //minutes per kilometer
   var tick = 100; // milliseconds
+
+  // var step = 0.185; // 5; // metros por tick
+
+  var step = 1 / (speed / 60) * (10/36) * (tick / 1000);
+
   var eol = [];
 
-
-
-  var speed = 0.0005, wait = 1;
   var infowindow = null;
 
   var myPano;
@@ -55,7 +70,8 @@ body{height:100%;margin:0px;font-family: Helvetica,Arial;}
   ];
 
   var endLoc = [
-    'Rua Dom Pedro Henrique de Orleans e Braganca, 691 São Paulo Brasil',
+    'R. Maj. Paladino, 8 - Vila Ribeiro de Barros, São Paulo - SP, 05089-001',
+    // 'Rua Dom Pedro Henrique de Orleans e Braganca, 691 São Paulo Brasil',
     // 'princes town, trinidad',
     // 'tabaquite, trinidad',
     // 'mayaro, trinidad',
@@ -79,7 +95,7 @@ function initialize() {
   }
   map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
 
-  address = 'Trinidad y Tobago';
+  // address = 'Trinidad y Tobago';
   address = 'Rua Artur Orlando, 545 São Paulo Brasil';
   geocoder = new google.maps.Geocoder();
   geocoder.geocode({'address': address}, function(results, status) {
@@ -105,7 +121,7 @@ function createMarker(latlng, label, html) {
         infowindow.open(map,marker);
         });
     return marker;
-}  
+}
 
 function setRoutes() {
 
@@ -120,7 +136,8 @@ function setRoutes() {
     }
     directionsService = new google.maps.DirectionsService();
 
-    var travelMode = google.maps.DirectionsTravelMode.DRIVING;
+    // var travelMode = google.maps.DirectionsTravelMode.DRIVING;
+    var travelMode = google.maps.DirectionsTravelMode.WALKING;
 
     var request = {
       origin: startLoc[i],
@@ -130,6 +147,8 @@ function setRoutes() {
 
     directionsService.route(request, makeRouteCallback(i, directionsDisplay[i]));
   }
+
+  console.log(directionsDisplay);
 
 
     function makeRouteCallback(routeNum, disp){
@@ -206,65 +225,57 @@ function setRoutes() {
 
 }
 
-//----------------------------------------------------------------------                
- function updatePoly(i,d) {
- // Spawn a new polyline every 20 vertices, because updating a 100-vertex poly is too slow
-    if (poly2[i].getPath().getLength() > 20) {
-          poly2[i]=new google.maps.Polyline([polyline[i].getPath().getAt(lastVertex-1)]);
-          // map.addOverlay(poly2)
-        }
+function updatePoly(i, d) {
+  // Spawn a new polyline every 20 vertices, because updating a 100-vertex poly is too slow
+  if (poly2[i].getPath().getLength() > 20) {
+    poly2[i] = new google.maps.Polyline([polyline[i].getPath().getAt(lastVertex - 1)]);
+    // map.addOverlay(poly2)
+  }
 
-    if (polyline[i].GetIndexAtDistance(d) < lastVertex+2) {
-        if (poly2[i].getPath().getLength()>1) {
-            poly2[i].getPath().removeAt(poly2[i].getPath().getLength()-1)
-        }
-            poly2[i].getPath().insertAt(poly2[i].getPath().getLength(),polyline[i].GetPointAtDistance(d));
-    } else {
-        poly2[i].getPath().insertAt(poly2[i].getPath().getLength(),endLocation[i].latlng);
+  if (polyline[i].GetIndexAtDistance(d) < lastVertex + 2) {
+    if (poly2[i].getPath().getLength() > 1) {
+      poly2[i].getPath().removeAt(poly2[i].getPath().getLength() - 1);
     }
- }
-//----------------------------------------------------------------------------
+    poly2[i].getPath().insertAt(poly2[i].getPath().getLength(), polyline[i].GetPointAtDistance(d));
+  } else {
+    poly2[i].getPath().insertAt(poly2[i].getPath().getLength(), endLocation[i].latlng);
+  }
+}
 
-function animate(index,d) {
-   if (d>eol[index]) {
+function animate(index, d) {
+  if (d > eol[index]) {
+    marker[index].setPosition(endLocation[index].latlng);
+    return;
+  }
 
-      marker[index].setPosition(endLocation[index].latlng);
-      return;
-   }
-    var p = polyline[index].GetPointAtDistance(d);
+  var p = polyline[index].GetPointAtDistance(d);
 
-    //map.panTo(p);
-    marker[index].setPosition(p);
-    updatePoly(index,d);
-    timerHandle[index] = setTimeout("animate("+index+","+(d+step)+")", tick);
+  //map.panTo(p);
+  marker[index].setPosition(p);
+  updatePoly(index, d);
+
+  timerHandle[index] = setTimeout("animate(" + index + "," + (d + step) + ")", tick);
 }
 
 //-------------------------------------------------------------------------
 
 function startAnimation(index) {
-        if (timerHandle[index]) clearTimeout(timerHandle[index]);
-        eol[index]=polyline[index].Distance();
-        map.setCenter(polyline[index].getPath().getAt(0));
+  if (timerHandle[index]) clearTimeout(timerHandle[index]);
+  eol[index] = polyline[index].Distance();
+  map.setCenter(polyline[index].getPath().getAt(0));
 
-        poly2[index] = new google.maps.Polyline({path: [polyline[index].getPath().getAt(0)], strokeColor:"#FFFF00", strokeWeight:3});
+  poly2[index] = new google.maps.Polyline({path: [polyline[index].getPath().getAt(0)], strokeColor:"#FFFF00", strokeWeight:3});
 
-        timerHandle[index] = setTimeout("animate("+index+",50)",2000);  // Allow time for the initial map display
+  timerHandle[index] = setTimeout("animate(" + index + ", 0)", 2000);  // Allow time for the initial map display
 }
 
 //----------------------------------------------------------------------------    
-
-
-
 </script>
 </head>
 <body onload="initialize()">
-
 <div id="tools">
-
-    <button onclick="setRoutes();">Start</button>
-
+  <button onclick="setRoutes();">Start</button>
 </div>
-
-<div id="map_canvas" style="width:80%; height:95%; margin: 0px auto;"></div>
+<div id="map_canvas"></div>
 </body>
 </html>
